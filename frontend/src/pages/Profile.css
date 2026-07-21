@@ -1,0 +1,95 @@
+.profile-page-container {
+  display: flex;
+  min-height: 100vh;
+  background: #f4f6f9;
+}
+
+.profile-sidebar {
+  width: 250px;
+  background: #1e293b;
+  color: white;
+  padding: 20px;
+}
+
+.profile-sidebar h2 {
+  text-align: center;
+  margin-bottom: 30px;
+}
+
+.profile-sidebar ul {
+  list-style: none;
+  padding: 0;
+}
+
+.profile-sidebar li {
+  padding: 12px;
+  margin: 8px 0;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: 0.3s;
+}
+
+.profile-sidebar li:hover {
+  background: #334155;
+}
+
+.profile-sidebar button {
+  width: 100%;
+  margin-top: 30px;
+  padding: 12px;
+  border: none;
+  border-radius: 8px;
+  background: crimson;
+  color: white;
+  cursor: pointer;
+}
+
+.profile-content {
+  flex: 1;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.profile-card {
+  background: white;
+  width: 500px;
+  padding: 30px;
+  border-radius: 15px;
+  box-shadow: 0 0 15px rgba(0,0,0,0.15);
+  text-align: center;
+}
+
+.profile-image {
+  width: 130px;
+  height: 130px;
+  border-radius: 50%;
+  margin-bottom: 20px;
+}
+
+.profile-information {
+  text-align: left;
+  margin-top: 20px;
+}
+
+.profile-information label {
+  font-weight: bold;
+}
+
+.profile-information input {
+  width: 100%;
+  padding: 12px;
+  margin: 8px 0 20px;
+  border-radius: 8px;
+  border: 1px solid #ccc;
+}
+
+.back-button {
+  width: 100%;
+  padding: 12px;
+  background: #2563eb;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+}
