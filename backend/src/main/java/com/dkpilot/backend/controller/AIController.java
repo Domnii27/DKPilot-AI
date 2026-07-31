@@ -30,4 +30,36 @@ public class AIController {
 
         return response;
     }
+
+    @PostMapping("/invoice")
+    public Map<String, String> generateInvoiceDetails(
+            @RequestBody AIRequest aiRequest) {
+
+        String prompt = """
+                Extract invoice details from the user's message.
+
+                Return only valid JSON in this exact format:
+                {
+                  "clientName": "",
+                  "clientEmail": "",
+                  "itemDescription": "",
+                  "amount": 0,
+                  "gstPercentage": 0
+                }
+
+                Rules:
+                1. Do not add markdown.
+                2. Do not add explanations.
+                3. If client email is not provided, keep it empty.
+                4. Amount and GST must be numbers.
+                5. User message:
+                """ + aiRequest.getMessage();
+
+        String answer = openAIService.generateResponse(prompt);
+
+        Map<String, String> response = new HashMap<>();
+        response.put("answer", answer);
+
+        return response;
+    }
 }
