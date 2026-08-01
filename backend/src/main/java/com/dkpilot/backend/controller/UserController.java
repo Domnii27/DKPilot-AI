@@ -1,5 +1,6 @@
 package com.dkpilot.backend.controller;
 
+import com.dkpilot.backend.dto.ChangePasswordRequest;
 import com.dkpilot.backend.dto.LoginRequest;
 import com.dkpilot.backend.dto.LoginResponse;
 import com.dkpilot.backend.entity.User;
@@ -9,7 +10,11 @@ import com.dkpilot.backend.service.UserService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
+
+import java.util.HashMap;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api/users")
@@ -23,7 +28,9 @@ public class UserController {
     private JwtService jwtService;
 
     @PostMapping("/register")
-    public ResponseEntity<User> registerUser(@RequestBody User user) {
+    public ResponseEntity<User> registerUser(
+            @RequestBody User user
+    ) {
 
         User savedUser = userService.registerUser(user);
 
@@ -36,7 +43,8 @@ public class UserController {
 
     @PostMapping("/login")
     public ResponseEntity<LoginResponse> loginUser(
-            @RequestBody LoginRequest loginRequest) {
+            @RequestBody LoginRequest loginRequest
+    ) {
 
         User user = userService.loginUser(
                 loginRequest.getEmail(),
@@ -49,7 +57,9 @@ public class UserController {
                     .build();
         }
 
-        String token = jwtService.generateToken(user.getEmail());
+        String token = jwtService.generateToken(
+                user.getEmail()
+        );
 
         User safeUser = createSafeUser(user);
 
@@ -57,6 +67,64 @@ public class UserController {
                 new LoginResponse(token, safeUser);
 
         return ResponseEntity.ok(loginResponse);
+    }
+
+    @PostMapping("/change-password")
+    public ResponseEntity<Map<String, String>> changePassword(
+            @RequestBody ChangePasswordRequest request,
+            Authentication authentication
+    ) {
+
+        Map<String, String> response = new HashMap<>();
+
+        if (authentication == null) {
+            response.put(
+                    "message",
+                    "User is not authenticated"
+            );
+
+            return ResponseEntity
+                    .status(HttpStatus.UNAUTHORIZED)
+                    .body(response);
+        }
+
+        String email = authentication.getName();
+
+        String result = userService.changePassword(
+                email,
+                request.getCurrentPassword(),
+                request.getNewPassword()
+        );
+
+        response.put("message", result);
+
+        if (
+                result.equals(
+                        "Password updated successfully"
+                )
+        ) {
+            return ResponseEntity.ok(response);
+        }
+
+        if (
+                result.equals(
+                        "Current password is incorrect"
+                )
+        ) {
+            return ResponseEntity
+                    .status(HttpStatus.UNAUTHORIZED)
+                    .body(response);
+        }
+
+        if (result.equals("User not found")) {
+            return ResponseEntity
+                    .status(HttpStatus.NOT_FOUND)
+                    .body(response);
+        }
+
+        return ResponseEntity
+                .status(HttpStatus.BAD_REQUEST)
+                .body(response);
     }
 
     private User createSafeUser(User user) {
