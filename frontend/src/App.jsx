@@ -1,5 +1,5 @@
 import { Routes, Route } from "react-router-dom";
-
+import Customers from "./pages/Customers";
 import Home from "./pages/Home";
 import Login from "./pages/Login";
 import Register from "./pages/Register";
@@ -21,7 +21,7 @@ function App() {
       {/* Public Routes */}
 
       <Route path="/" element={<Home />} />
-
+<Route path="/customers" element={<Customers />} />
       <Route path="/login" element={<Login />} />
 
       <Route path="/register" element={<Register />} />

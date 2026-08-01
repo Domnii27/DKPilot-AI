@@ -38,10 +38,14 @@ public class SecurityConfig {
                 )
 
                 .authorizeHttpRequests(auth -> auth
+
                         .requestMatchers(
                                 "/api/users/register",
                                 "/api/users/login",
-                                "/api/ai/test"
+                                "/api/ai/test",
+                                "/api/customers/**",
+                                "/api/schedules/**",
+                                "/api/dashboard/**"
                         )
                         .permitAll()
 

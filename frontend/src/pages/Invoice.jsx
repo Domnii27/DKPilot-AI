@@ -1,17 +1,24 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import axios from "axios";
 import { downloadInvoicePDF } from "../utils/InvoicePDF";
 
 function Invoice() {
+  const [customers, setCustomers] = useState([]);
+  const [selectedCustomerId, setSelectedCustomerId] = useState("");
+
   const [clientName, setClientName] = useState("");
   const [clientEmail, setClientEmail] = useState("");
   const [itemDescription, setItemDescription] = useState("");
   const [amount, setAmount] = useState("");
   const [gstPercentage, setGstPercentage] = useState("");
+
   const [invoiceHistory, setInvoiceHistory] = useState([]);
   const [selectedInvoice, setSelectedInvoice] = useState(null);
+
   const [message, setMessage] = useState("");
   const [loading, setLoading] = useState(false);
+  const [customerLoading, setCustomerLoading] = useState(false);
+  const [historyLoading, setHistoryLoading] = useState(false);
 
   const [aiInvoicePrompt, setAiInvoicePrompt] = useState("");
   const [aiLoading, setAiLoading] = useState(false);
@@ -24,6 +31,149 @@ function Invoice() {
 
   const getToken = () => {
     return localStorage.getItem("token");
+  };
+
+  const getAuthHeaders = () => {
+    const token = getToken();
+
+    if (!token) {
+      return {};
+    }
+
+    return {
+      Authorization: `Bearer ${token}`,
+    };
+  };
+
+  const fetchCustomers = async () => {
+    try {
+      setCustomerLoading(true);
+
+      const response = await axios.get(
+        "http://localhost:8081/api/customers",
+        {
+          headers: getAuthHeaders(),
+        }
+      );
+
+      if (Array.isArray(response.data)) {
+        setCustomers(response.data);
+      } else {
+        setCustomers([]);
+      }
+    } catch (error) {
+      console.error("Customer loading error:", error);
+      setCustomers([]);
+      setMessage("Customers load panna mudiyala");
+    } finally {
+      setCustomerLoading(false);
+    }
+  };
+
+  const fetchInvoiceHistory = async () => {
+    const token = getToken();
+
+    if (!token) {
+      setMessage("Please login again");
+      return;
+    }
+
+    try {
+      setHistoryLoading(true);
+
+      const response = await axios.get(
+        "http://localhost:8081/api/invoices/history",
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+
+      if (Array.isArray(response.data)) {
+        setInvoiceHistory(response.data);
+      } else {
+        setInvoiceHistory([]);
+      }
+    } catch (error) {
+      console.error("Invoice history error:", error);
+
+      if (error.response?.status === 401) {
+        setMessage("Login expired. Please login again");
+      } else if (error.response?.status === 403) {
+        setMessage(
+          "You are not authorized to view invoice history"
+        );
+      } else {
+        setMessage("Failed to load invoice history");
+      }
+    } finally {
+      setHistoryLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchCustomers();
+    fetchInvoiceHistory();
+  }, []);
+
+  const selectedCustomer = useMemo(() => {
+    if (!selectedCustomerId) {
+      return null;
+    }
+
+    return customers.find(
+      (customer) =>
+        String(customer.id) === String(selectedCustomerId)
+    );
+  }, [customers, selectedCustomerId]);
+
+  const filteredInvoices = useMemo(() => {
+    if (!selectedCustomer) {
+      return invoiceHistory;
+    }
+
+    return invoiceHistory.filter((invoice) => {
+      const invoiceEmail = String(
+        invoice.clientEmail || ""
+      )
+        .trim()
+        .toLowerCase();
+
+      const customerEmail = String(
+        selectedCustomer.email || ""
+      )
+        .trim()
+        .toLowerCase();
+
+      return invoiceEmail === customerEmail;
+    });
+  }, [invoiceHistory, selectedCustomer]);
+
+  const handleCustomerSelection = (event) => {
+    const customerId = event.target.value;
+
+    setSelectedCustomerId(customerId);
+    setMessage("");
+
+    if (!customerId) {
+      setClientName("");
+      setClientEmail("");
+      return;
+    }
+
+    const customer = customers.find(
+      (item) => String(item.id) === String(customerId)
+    );
+
+    if (customer) {
+      setClientName(customer.name || "");
+      setClientEmail(customer.email || "");
+
+      setMessage(
+        `${customer.name} customer details selected successfully`
+      );
+    }
   };
 
   const generateInvoiceWithAI = async () => {
@@ -41,6 +191,7 @@ function Invoice() {
 
     try {
       setAiLoading(true);
+      setMessage("");
 
       const response = await axios.post(
         "http://localhost:8081/api/ai/invoice",
@@ -57,6 +208,10 @@ function Invoice() {
 
       let answer = response.data.answer;
 
+      if (typeof answer !== "string") {
+        throw new Error("Invalid AI response");
+      }
+
       answer = answer
         .replace(/```json/gi, "")
         .replace(/```/g, "")
@@ -64,15 +219,18 @@ function Invoice() {
 
       const aiResult = JSON.parse(answer);
 
+      setSelectedCustomerId("");
       setClientName(aiResult.clientName || "");
       setClientEmail(aiResult.clientEmail || "");
       setItemDescription(aiResult.itemDescription || "");
+
       setAmount(
         aiResult.amount !== undefined &&
           aiResult.amount !== null
           ? String(aiResult.amount)
           : ""
       );
+
       setGstPercentage(
         aiResult.gstPercentage !== undefined &&
           aiResult.gstPercentage !== null
@@ -95,44 +253,6 @@ function Invoice() {
       setAiLoading(false);
     }
   };
-
-  const fetchInvoiceHistory = async () => {
-    const token = getToken();
-
-    if (!token) {
-      setMessage("Please login again");
-      return;
-    }
-
-    try {
-      const response = await axios.get(
-        "http://localhost:8081/api/invoices/history",
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        }
-      );
-
-      setInvoiceHistory(response.data);
-    } catch (error) {
-      console.error("Invoice history error:", error);
-
-      if (error.response?.status === 401) {
-        setMessage("Login expired. Please login again");
-      } else if (error.response?.status === 403) {
-        setMessage(
-          "You are not authorized to view invoice history"
-        );
-      } else {
-        setMessage("Failed to load invoice history");
-      }
-    }
-  };
-
-  useEffect(() => {
-    fetchInvoiceHistory();
-  }, []);
 
   const createInvoice = async () => {
     if (
@@ -192,12 +312,15 @@ function Invoice() {
       setMessage("Invoice created successfully");
       setSelectedInvoice(response.data);
 
-      setClientName("");
-      setClientEmail("");
       setItemDescription("");
       setAmount("");
       setGstPercentage("");
       setAiInvoicePrompt("");
+
+      if (!selectedCustomerId) {
+        setClientName("");
+        setClientEmail("");
+      }
 
       await fetchInvoiceHistory();
     } catch (error) {
@@ -219,6 +342,17 @@ function Invoice() {
     }
   };
 
+  const resetInvoiceForm = () => {
+    setSelectedCustomerId("");
+    setClientName("");
+    setClientEmail("");
+    setItemDescription("");
+    setAmount("");
+    setGstPercentage("");
+    setAiInvoicePrompt("");
+    setMessage("");
+  };
+
   const formatAmount = (value) => {
     return Number(value || 0).toFixed(2);
   };
@@ -228,7 +362,7 @@ function Invoice() {
       return "-";
     }
 
-    return new Date(date).toLocaleString();
+    return new Date(date).toLocaleString("en-IN");
   };
 
   return (
@@ -240,21 +374,67 @@ function Invoice() {
           </h1>
 
           <p style={styles.subtitle}>
-            Create invoices and automatically calculate GST.
+            Select a customer or use AI to create a professional
+            invoice.
           </p>
         </div>
 
         <button
           style={styles.refreshButton}
-          onClick={fetchInvoiceHistory}
+          onClick={async () => {
+            await fetchCustomers();
+            await fetchInvoiceHistory();
+          }}
         >
-          🔄 Refresh History
+          🔄 Refresh Data
         </button>
       </div>
 
       <div style={styles.mainGrid}>
         <div style={styles.card}>
           <h2 style={styles.cardTitle}>Create Invoice</h2>
+
+          <div style={styles.customerBox}>
+            <label style={styles.customerLabel}>
+              👥 Select Saved Customer
+            </label>
+
+            <select
+              value={selectedCustomerId}
+              onChange={handleCustomerSelection}
+              disabled={customerLoading}
+              style={styles.select}
+            >
+              <option value="">
+                {customerLoading
+                  ? "Loading customers..."
+                  : "All Customers / Manual Entry"}
+              </option>
+
+              {customers.map((customer) => (
+                <option
+                  key={customer.id}
+                  value={String(customer.id)}
+                >
+                  {customer.name}
+                  {customer.companyName
+                    ? ` - ${customer.companyName}`
+                    : ""}
+                </option>
+              ))}
+            </select>
+
+            <p style={styles.customerHelpText}>
+              Customer select pannina name, email auto fill
+              aagum; history-um andha customer-ku filter aagum.
+            </p>
+          </div>
+
+          <div style={styles.orDivider}>
+            <span style={styles.orLine}></span>
+            <span style={styles.orText}>OR</span>
+            <span style={styles.orLine}></span>
+          </div>
 
           <div style={styles.aiBox}>
             <label style={styles.aiLabel}>
@@ -274,6 +454,9 @@ function Invoice() {
               style={{
                 ...styles.aiButton,
                 opacity: aiLoading ? 0.7 : 1,
+                cursor: aiLoading
+                  ? "not-allowed"
+                  : "pointer",
               }}
               onClick={generateInvoiceWithAI}
               disabled={aiLoading}
@@ -291,9 +474,10 @@ function Invoice() {
             type="text"
             placeholder="Enter client name"
             value={clientName}
-            onChange={(event) =>
-              setClientName(event.target.value)
-            }
+            onChange={(event) => {
+              setClientName(event.target.value);
+              setSelectedCustomerId("");
+            }}
           />
 
           <label style={styles.label}>Client Email</label>
@@ -303,9 +487,10 @@ function Invoice() {
             type="email"
             placeholder="Enter client email"
             value={clientEmail}
-            onChange={(event) =>
-              setClientEmail(event.target.value)
-            }
+            onChange={(event) => {
+              setClientEmail(event.target.value);
+              setSelectedCustomerId("");
+            }}
           />
 
           <label style={styles.label}>
@@ -365,7 +550,9 @@ function Invoice() {
 
             <div style={styles.calculationRow}>
               <span>GST Amount</span>
-              <strong>₹{formatAmount(gstAmount)}</strong>
+              <strong>
+                ₹{formatAmount(gstAmount)}
+              </strong>
             </div>
 
             <div style={styles.totalRow}>
@@ -377,21 +564,34 @@ function Invoice() {
           </div>
 
           {message && (
-            <p style={styles.message}>{message}</p>
+            <div style={styles.message}>{message}</div>
           )}
 
-          <button
-            style={{
-              ...styles.createButton,
-              opacity: loading ? 0.7 : 1,
-            }}
-            onClick={createInvoice}
-            disabled={loading}
-          >
-            {loading
-              ? "Creating Invoice..."
-              : "Generate Invoice"}
-          </button>
+          <div style={styles.formButtonRow}>
+            <button
+              style={{
+                ...styles.createButton,
+                opacity: loading ? 0.7 : 1,
+                cursor: loading
+                  ? "not-allowed"
+                  : "pointer",
+              }}
+              onClick={createInvoice}
+              disabled={loading}
+            >
+              {loading
+                ? "Creating Invoice..."
+                : "Generate Invoice"}
+            </button>
+
+            <button
+              style={styles.clearButton}
+              onClick={resetInvoiceForm}
+              disabled={loading || aiLoading}
+            >
+              Clear
+            </button>
+          </div>
         </div>
 
         <div style={styles.card}>
@@ -437,7 +637,9 @@ function Invoice() {
 
             <div style={styles.calculationRow}>
               <span>GST ({numericGst}%)</span>
-              <strong>₹{formatAmount(gstAmount)}</strong>
+              <strong>
+                ₹{formatAmount(gstAmount)}
+              </strong>
             </div>
 
             <div style={styles.totalRow}>
@@ -449,14 +651,36 @@ function Invoice() {
           </div>
         </div>
       </div>
-            <div style={styles.historyCard}>
-        <h2 style={styles.cardTitle}>
-          Invoice History
-        </h2>
 
-        {invoiceHistory.length === 0 ? (
+      <div style={styles.historyCard}>
+        <div style={styles.historyHeader}>
+          <div>
+            <h2 style={styles.cardTitle}>
+              Invoice History
+            </h2>
+
+            <p style={styles.historySubtitle}>
+              {selectedCustomer
+                ? `Showing invoices for ${selectedCustomer.name}`
+                : "Showing invoices for all customers"}
+            </p>
+          </div>
+
+          <div style={styles.invoiceCount}>
+            {filteredInvoices.length} Invoice
+            {filteredInvoices.length === 1 ? "" : "s"}
+          </div>
+        </div>
+
+        {historyLoading ? (
           <p style={styles.emptyText}>
-            No invoices created yet.
+            Loading invoice history...
+          </p>
+        ) : filteredInvoices.length === 0 ? (
+          <p style={styles.emptyText}>
+            {selectedCustomer
+              ? "No invoices found for this customer."
+              : "No invoices created yet."}
           </p>
         ) : (
           <div style={styles.tableWrapper}>
@@ -474,7 +698,7 @@ function Invoice() {
               </thead>
 
               <tbody>
-                {invoiceHistory.map((invoice) => (
+                {filteredInvoices.map((invoice) => (
                   <tr key={invoice.id}>
                     <td style={styles.tableCell}>
                       {invoice.clientName}
@@ -520,8 +744,14 @@ function Invoice() {
       </div>
 
       {selectedInvoice && (
-        <div style={styles.modalOverlay}>
-          <div style={styles.modal}>
+        <div
+          style={styles.modalOverlay}
+          onClick={() => setSelectedInvoice(null)}
+        >
+          <div
+            style={styles.modal}
+            onClick={(event) => event.stopPropagation()}
+          >
             <div style={styles.modalHeader}>
               <h2 style={styles.cardTitle}>
                 Invoice Details
@@ -572,7 +802,6 @@ function Invoice() {
 
               <div style={styles.calculationRow}>
                 <span>Amount</span>
-
                 <strong>
                   ₹{formatAmount(selectedInvoice.amount)}
                 </strong>
@@ -582,7 +811,6 @@ function Invoice() {
                 <span>
                   GST ({selectedInvoice.gstPercentage}%)
                 </span>
-
                 <strong>
                   ₹
                   {formatAmount(
@@ -593,7 +821,6 @@ function Invoice() {
 
               <div style={styles.totalRow}>
                 <span>Total Amount</span>
-
                 <strong>
                   ₹
                   {formatAmount(
@@ -643,6 +870,7 @@ const styles = {
     justifyContent: "space-between",
     alignItems: "center",
     gap: "20px",
+    flexWrap: "wrap",
     marginBottom: "25px",
   },
 
@@ -680,9 +908,82 @@ const styles = {
       "0 8px 24px rgba(0, 0, 0, 0.08)",
   },
 
+  historyHeader: {
+    display: "flex",
+    justifyContent: "space-between",
+    alignItems: "center",
+    gap: "15px",
+    flexWrap: "wrap",
+    marginBottom: "20px",
+  },
+
+  historySubtitle: {
+    margin: "7px 0 0",
+    color: "#6b7280",
+  },
+
+  invoiceCount: {
+    padding: "10px 16px",
+    borderRadius: "10px",
+    background: "#dbeafe",
+    color: "#1d4ed8",
+    fontWeight: "bold",
+  },
+
   cardTitle: {
     marginTop: 0,
     marginBottom: "20px",
+  },
+
+  customerBox: {
+    padding: "16px",
+    marginBottom: "18px",
+    border: "1px solid #bfdbfe",
+    borderRadius: "12px",
+    background: "#eff6ff",
+  },
+
+  customerLabel: {
+    display: "block",
+    marginBottom: "9px",
+    color: "#1e40af",
+    fontWeight: "bold",
+  },
+
+  select: {
+    width: "100%",
+    padding: "13px",
+    boxSizing: "border-box",
+    border: "1px solid #93c5fd",
+    borderRadius: "9px",
+    background: "#ffffff",
+    fontSize: "15px",
+    cursor: "pointer",
+  },
+
+  customerHelpText: {
+    marginBottom: 0,
+    color: "#64748b",
+    fontSize: "13px",
+  },
+
+  orDivider: {
+    display: "flex",
+    alignItems: "center",
+    gap: "10px",
+    margin: "18px 0",
+  },
+
+  orLine: {
+    flex: 1,
+    height: "1px",
+    background: "#d1d5db",
+  },
+
+  orText: {
+    color: "#94a3b8",
+    fontSize: "12px",
+    fontWeight: "bold",
   },
 
   aiBox: {
@@ -721,7 +1022,6 @@ const styles = {
     color: "#ffffff",
     fontSize: "15px",
     fontWeight: "bold",
-    cursor: "pointer",
   },
 
   label: {
@@ -753,7 +1053,8 @@ const styles = {
 
   twoColumn: {
     display: "grid",
-    gridTemplateColumns: "1fr 1fr",
+    gridTemplateColumns:
+      "repeat(auto-fit, minmax(180px, 1fr))",
     gap: "15px",
   },
 
@@ -781,9 +1082,25 @@ const styles = {
     fontSize: "18px",
   },
 
+  message: {
+    padding: "12px",
+    marginTop: "15px",
+    borderRadius: "8px",
+    background: "#f0fdf4",
+    color: "#166534",
+    textAlign: "center",
+    fontWeight: "bold",
+  },
+
+  formButtonRow: {
+    display: "grid",
+    gridTemplateColumns: "1fr auto",
+    gap: "12px",
+    marginTop: "15px",
+  },
+
   createButton: {
     width: "100%",
-    marginTop: "15px",
     padding: "13px",
     border: "none",
     borderRadius: "9px",
@@ -791,6 +1108,15 @@ const styles = {
     color: "#ffffff",
     fontSize: "16px",
     fontWeight: "bold",
+  },
+
+  clearButton: {
+    padding: "13px 24px",
+    border: "1px solid #cbd5e1",
+    borderRadius: "9px",
+    background: "#ffffff",
+    color: "#334155",
+    fontSize: "15px",
     cursor: "pointer",
   },
 
@@ -826,18 +1152,13 @@ const styles = {
     margin: "20px 0",
   },
 
-  message: {
-    textAlign: "center",
-    fontWeight: "bold",
-    marginBottom: 0,
-  },
-
   tableWrapper: {
     overflowX: "auto",
   },
 
   table: {
     width: "100%",
+    minWidth: "850px",
     borderCollapse: "collapse",
   },
 
@@ -863,7 +1184,11 @@ const styles = {
   },
 
   emptyText: {
+    padding: "25px",
+    borderRadius: "10px",
+    background: "#f8fafc",
     color: "#6b7280",
+    textAlign: "center",
   },
 
   modalOverlay: {
@@ -927,7 +1252,6 @@ const styles = {
 
   modalCloseButton: {
     width: "100%",
-    marginTop: "0",
     padding: "12px",
     border: "none",
     borderRadius: "8px",
