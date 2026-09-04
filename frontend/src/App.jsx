@@ -1,9 +1,10 @@
 import { Routes, Route } from "react-router-dom";
+
 import Customers from "./pages/Customers";
 import Home from "./pages/Home";
 import Login from "./pages/Login";
 import Register from "./pages/Register";
-import Dashboard from "./pages/Dashboard";
+import Dashboard from "./pages/Dashboard_backup";
 import Profile from "./pages/Profile";
 
 import AIAssistant from "./pages/AIAssistant";
@@ -11,20 +12,34 @@ import Email from "./pages/Email";
 import Invoice from "./pages/Invoice";
 import Schedule from "./pages/Schedule";
 import Settings from "./pages/Settings";
+import BusinessReport from "./pages/BusinessReport";
 
 import ProtectedRoute from "./components/ProtectedRoute";
 
 function App() {
   return (
     <Routes>
-
       {/* Public Routes */}
 
-      <Route path="/" element={<Home />} />
-<Route path="/customers" element={<Customers />} />
-      <Route path="/login" element={<Login />} />
+      <Route
+        path="/"
+        element={<Home />}
+      />
 
-      <Route path="/register" element={<Register />} />
+      <Route
+        path="/customers"
+        element={<Customers />}
+      />
+
+      <Route
+        path="/login"
+        element={<Login />}
+      />
+
+      <Route
+        path="/register"
+        element={<Register />}
+      />
 
       {/* Protected Routes */}
 
@@ -91,6 +106,14 @@ function App() {
         }
       />
 
+      <Route
+        path="/business-report"
+        element={
+          <ProtectedRoute>
+            <BusinessReport />
+          </ProtectedRoute>
+        }
+      />
     </Routes>
   );
 }

@@ -1,94 +1,164 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import axios from "axios";
 import "./AIAssistant.css";
 
 function AIAssistant() {
   const [message, setMessage] = useState("");
+
   const [messages, setMessages] = useState([]);
+
   const [loading, setLoading] = useState(false);
 
-  const [chatHistory, setChatHistory] = useState([]);
-  const [historyLoading, setHistoryLoading] =
-    useState(false);
-  const [historyError, setHistoryError] =
-    useState("");
+  const [searchText, setSearchText] = useState("");
 
-  const [selectedHistoryId, setSelectedHistoryId] =
-    useState(null);
+  const [sidebarOpen, setSidebarOpen] = useState(true);
+
+  const [showAnalytics, setShowAnalytics] = useState(false);
+
+  const [copiedMessageId, setCopiedMessageId] = useState(null);
+
+  const chatAreaRef = useRef(null);
 
   const getToken = () => {
     return localStorage.getItem("token");
   };
 
-  const loadChatHistory = async () => {
-    const token = getToken();
-
-    if (!token) {
-      setHistoryError("Please login again.");
-      return;
-    }
-
+  const getLoggedInUser = () => {
     try {
-      setHistoryLoading(true);
-      setHistoryError("");
-
-      const response = await axios.get(
-        "http://localhost:8081/api/ai/history",
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        }
+      return JSON.parse(
+        localStorage.getItem("loggedInUser")
+      );
+    } catch (error) {
+      console.error(
+        "Logged user read error:",
+        error
       );
 
-      if (Array.isArray(response.data)) {
-        setChatHistory(response.data);
-      } else {
-        setChatHistory([]);
-      }
-    } catch (error) {
-      console.error("Chat history error:", error);
+      return null;
+    }
+  };
 
-      if (
-        error.response?.status === 401 ||
-        error.response?.status === 403
-      ) {
-        setHistoryError(
-          "Session expired. Please login again."
+  const loggedInUser = getLoggedInUser();
+
+  const userName =
+    loggedInUser?.name || "Sanjay";
+
+  const userEmail =
+    loggedInUser?.email || "";
+
+  const getChatStorageKey = () => {
+    const safeEmail =
+      userEmail || "default-user";
+
+    return `dkpilot-ai-chat-${safeEmail}`;
+  };
+
+  const saveMessagesToLocalStorage = (
+    updatedMessages
+  ) => {
+    try {
+      localStorage.setItem(
+        getChatStorageKey(),
+        JSON.stringify(updatedMessages)
+      );
+    } catch (error) {
+      console.error(
+        "Chat save error:",
+        error
+      );
+    }
+  };
+
+  const loadMessagesFromLocalStorage = () => {
+    try {
+      const savedMessages =
+        localStorage.getItem(
+          getChatStorageKey()
         );
-      } else {
-        setHistoryError(
-          "Chat history load panna mudiyala."
-        );
+
+      if (!savedMessages) {
+        return [];
       }
-    } finally {
-      setHistoryLoading(false);
+
+      const parsedMessages =
+        JSON.parse(savedMessages);
+
+      return Array.isArray(parsedMessages)
+        ? parsedMessages
+        : [];
+    } catch (error) {
+      console.error(
+        "Chat history load error:",
+        error
+      );
+
+      return [];
     }
   };
 
   useEffect(() => {
-    loadChatHistory();
+    const savedMessages =
+      loadMessagesFromLocalStorage();
+
+    setMessages(savedMessages);
   }, []);
 
-  const askAI = async () => {
-    const trimmedMessage = message.trim();
+  useEffect(() => {
+    saveMessagesToLocalStorage(messages);
+  }, [messages]);
 
-    if (!trimmedMessage || loading) {
+  useEffect(() => {
+    if (!chatAreaRef.current) {
+      return;
+    }
+
+    chatAreaRef.current.scrollTo({
+      top: chatAreaRef.current.scrollHeight,
+      behavior: "smooth",
+    });
+  }, [messages, loading]);
+
+  const createMessage = (
+    sender,
+    text,
+    extraData = {}
+  ) => {
+    return {
+      id: `${Date.now()}-${Math.random()}`,
+      sender,
+      text,
+      createdAt:
+        new Date().toISOString(),
+      ...extraData,
+    };
+  };
+
+  const askAI = async (
+    customMessage = null
+  ) => {
+    const messageToSend =
+      customMessage !== null
+        ? customMessage.trim()
+        : message.trim();
+
+    if (!messageToSend || loading) {
       return;
     }
 
     const token = getToken();
 
     if (!token) {
-      alert("Please login again.");
+      alert(
+        "Session expired. Please login again."
+      );
+
       return;
     }
 
-    const userMessage = {
-      id: `user-${Date.now()}`,
-      sender: "user",
-      text: trimmedMessage,
-    };
+    const userMessage = createMessage(
+      "user",
+      messageToSend
+    );
 
     setMessages((previousMessages) => [
       ...previousMessages,
@@ -97,38 +167,40 @@ function AIAssistant() {
 
     setMessage("");
     setLoading(true);
-    setSelectedHistoryId(null);
 
     try {
       const response = await axios.post(
         "http://localhost:8081/api/ai/chat",
         {
-          message: trimmedMessage,
+          message: messageToSend,
         },
         {
           headers: {
             Authorization: `Bearer ${token}`,
-            "Content-Type": "application/json",
+            "Content-Type":
+              "application/json",
           },
         }
       );
 
-      const aiMessage = {
-        id: `ai-${Date.now()}`,
-        sender: "ai",
-        text:
-          response.data?.answer ||
-          "AI response not available.",
-      };
+      const answer =
+        response.data?.answer ||
+        "AI response available illa.";
+
+      const aiMessage = createMessage(
+        "ai",
+        answer
+      );
 
       setMessages((previousMessages) => [
         ...previousMessages,
         aiMessage,
       ]);
-
-      await loadChatHistory();
     } catch (error) {
-      console.error("AI chat error:", error);
+      console.error(
+        "AI response error:",
+        error
+      );
 
       let errorText =
         "AI response generate panna mudiyala. Please try again.";
@@ -139,15 +211,20 @@ function AIAssistant() {
       ) {
         errorText =
           "Session expired. Please login again.";
-      } else if (error.response?.data?.message) {
-        errorText = error.response.data.message;
+      } else if (
+        error.response?.data?.message
+      ) {
+        errorText =
+          error.response.data.message;
       }
 
-      const errorMessage = {
-        id: `error-${Date.now()}`,
-        sender: "ai",
-        text: errorText,
-      };
+      const errorMessage = createMessage(
+        "ai",
+        errorText,
+        {
+          isError: true,
+        }
+      );
 
       setMessages((previousMessages) => [
         ...previousMessages,
@@ -168,365 +245,967 @@ function AIAssistant() {
     }
   };
 
+  const useSuggestion = (suggestion) => {
+    setMessage(suggestion);
+  };
+
+  const sendSuggestion = (suggestion) => {
+    askAI(suggestion);
+  };
+
   const startNewChat = () => {
+    const confirmation =
+      messages.length === 0 ||
+      window.confirm(
+        "Current chat clear panni new chat start panna sure-ah?"
+      );
+
+    if (!confirmation) {
+      return;
+    }
+
     setMessages([]);
     setMessage("");
-    setSelectedHistoryId(null);
+    setSearchText("");
+    setCopiedMessageId(null);
+
+    localStorage.removeItem(
+      getChatStorageKey()
+    );
   };
 
-  const openHistoryChat = (historyItem) => {
-    setSelectedHistoryId(historyItem.id);
-
-    setMessages([
-      {
-        id: `history-user-${historyItem.id}`,
-        sender: "user",
-        text: historyItem.userMessage,
-      },
-      {
-        id: `history-ai-${historyItem.id}`,
-        sender: "ai",
-        text: historyItem.aiResponse,
-      },
-    ]);
+  const deleteMessage = (messageId) => {
+    setMessages((previousMessages) =>
+      previousMessages.filter(
+        (chatMessage) =>
+          chatMessage.id !== messageId
+      )
+    );
   };
 
-  const deleteHistoryChat = async (
-    event,
-    historyId
+  const copyMessage = async (
+    chatMessage
   ) => {
-    event.stopPropagation();
-
-    const confirmation = window.confirm(
-      "Indha chat-ai delete panna sure-ah?"
-    );
-
-    if (!confirmation) {
-      return;
-    }
-
-    const token = getToken();
-
-    if (!token) {
-      alert("Please login again.");
-      return;
-    }
-
     try {
-      await axios.delete(
-        `http://localhost:8081/api/ai/history/${historyId}`,
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        }
+      await navigator.clipboard.writeText(
+        chatMessage.text
       );
 
-      if (selectedHistoryId === historyId) {
-        setMessages([]);
-        setSelectedHistoryId(null);
-      }
-
-      await loadChatHistory();
-    } catch (error) {
-      console.error("Delete chat error:", error);
-
-      alert(
-        error.response?.data?.message ||
-          "Chat delete panna mudiyala."
-      );
-    }
-  };
-
-  const clearAllHistory = async () => {
-    if (chatHistory.length === 0) {
-      return;
-    }
-
-    const confirmation = window.confirm(
-      "Ella AI chat history-um delete panna sure-ah?"
-    );
-
-    if (!confirmation) {
-      return;
-    }
-
-    const token = getToken();
-
-    if (!token) {
-      alert("Please login again.");
-      return;
-    }
-
-    try {
-      const response = await axios.delete(
-        "http://localhost:8081/api/ai/history",
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        }
+      setCopiedMessageId(
+        chatMessage.id
       );
 
-      setChatHistory([]);
-      setMessages([]);
-      setSelectedHistoryId(null);
-
-      alert(
-        response.data?.message ||
-          "Chat history cleared successfully."
-      );
+      window.setTimeout(() => {
+        setCopiedMessageId(null);
+      }, 1800);
     } catch (error) {
       console.error(
-        "Clear chat history error:",
+        "Message copy error:",
         error
       );
 
       alert(
-        error.response?.data?.message ||
-          "Chat history clear panna mudiyala."
+        "Message copy panna mudiyala"
       );
     }
   };
 
-  const formatDate = (dateValue) => {
+  const regenerateResponse = async (
+    messageIndex
+  ) => {
+    if (loading) {
+      return;
+    }
+
+    let previousUserMessage = null;
+
+    for (
+      let index = messageIndex - 1;
+      index >= 0;
+      index -= 1
+    ) {
+      if (
+        messages[index].sender === "user"
+      ) {
+        previousUserMessage =
+          messages[index];
+
+        break;
+      }
+    }
+
+    if (!previousUserMessage) {
+      alert(
+        "Previous user message available illa"
+      );
+
+      return;
+    }
+
+    await askAI(
+      previousUserMessage.text
+    );
+  };
+
+  const formatMessageDate = (
+    dateValue
+  ) => {
     if (!dateValue) {
       return "";
     }
 
     const date = new Date(dateValue);
 
-    if (Number.isNaN(date.getTime())) {
-      return dateValue;
+    if (
+      Number.isNaN(date.getTime())
+    ) {
+      return "";
     }
 
-    return date.toLocaleString("en-IN", {
-      day: "2-digit",
-      month: "short",
-      year: "numeric",
-      hour: "2-digit",
-      minute: "2-digit",
-    });
+    return date.toLocaleString(
+      "en-IN",
+      {
+        day: "2-digit",
+        month: "short",
+        hour: "2-digit",
+        minute: "2-digit",
+      }
+    );
   };
 
-  const createPreview = (text) => {
-    if (!text) {
-      return "Empty chat";
+  const filteredMessages =
+    useMemo(() => {
+      const searchValue =
+        searchText
+          .trim()
+          .toLowerCase();
+
+      if (!searchValue) {
+        return messages;
+      }
+
+      return messages.filter(
+        (chatMessage) =>
+          String(
+            chatMessage.text || ""
+          )
+            .toLowerCase()
+            .includes(searchValue)
+      );
+    }, [messages, searchText]);
+
+  const chatAnalytics = useMemo(() => {
+    const userMessages =
+      messages.filter(
+        (chatMessage) =>
+          chatMessage.sender === "user"
+      );
+
+    const aiMessages =
+      messages.filter(
+        (chatMessage) =>
+          chatMessage.sender === "ai" &&
+          !chatMessage.isError
+      );
+
+    const errorMessages =
+      messages.filter(
+        (chatMessage) =>
+          chatMessage.isError
+      );
+
+    const totalCharacters =
+      messages.reduce(
+        (total, chatMessage) =>
+          total +
+          String(
+            chatMessage.text || ""
+          ).length,
+        0
+      );
+
+    const averageResponseLength =
+      aiMessages.length > 0
+        ? Math.round(
+            aiMessages.reduce(
+              (total, chatMessage) =>
+                total +
+                String(
+                  chatMessage.text || ""
+                ).length,
+              0
+            ) / aiMessages.length
+          )
+        : 0;
+
+    const recentUserPrompts =
+      [...userMessages]
+        .reverse()
+        .slice(0, 5);
+
+    return {
+      totalMessages: messages.length,
+      userMessages:
+        userMessages.length,
+      aiResponses:
+        aiMessages.length,
+      failedResponses:
+        errorMessages.length,
+      totalCharacters,
+      averageResponseLength,
+      recentUserPrompts,
+    };
+  }, [messages]);
+
+  const exportChatAsText = () => {
+    if (messages.length === 0) {
+      alert(
+        "Export panna chat messages illa"
+      );
+
+      return;
     }
 
-    const cleanedText = text
-      .replace(/\s+/g, " ")
-      .trim();
+    const chatText = messages
+      .map((chatMessage) => {
+        const senderName =
+          chatMessage.sender === "user"
+            ? userName
+            : "DKPilot AI";
 
-    if (cleanedText.length <= 42) {
-      return cleanedText;
-    }
+        return `${senderName}
+${formatMessageDate(
+  chatMessage.createdAt
+)}
+${chatMessage.text}`;
+      })
+      .join(
+        "\n\n------------------------------\n\n"
+      );
 
-    return `${cleanedText.substring(0, 42)}...`;
+    const fileContent = `DKPilot AI Chat Export
+
+User: ${userName}
+Email: ${userEmail || "Not available"}
+Exported: ${new Date().toLocaleString(
+      "en-IN"
+    )}
+
+================================
+
+${chatText}
+`;
+
+    const blob = new Blob(
+      [fileContent],
+      {
+        type: "text/plain;charset=utf-8",
+      }
+    );
+
+    const downloadUrl =
+      URL.createObjectURL(blob);
+
+    const link =
+      document.createElement("a");
+
+    link.href = downloadUrl;
+    link.download = `DKPilot-AI-Chat-${Date.now()}.txt`;
+
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+
+    URL.revokeObjectURL(
+      downloadUrl
+    );
   };
 
   return (
-    <div className="ai-page">
-      <aside className="ai-sidebar">
-        <h2>🤖 DKPilot AI</h2>
+        <div className="ai-page">
+      <aside
+        className={`ai-sidebar ${
+          sidebarOpen ? "sidebar-open" : "sidebar-closed"
+        }`}
+      >
+        <div className="sidebar-top">
+          <div className="sidebar-brand">
+            <div className="brand-icon">
+              🤖
+            </div>
 
-        <button
-          className="new-chat-button"
-          onClick={startNewChat}
-        >
-          + New Chat
-        </button>
+            {sidebarOpen && (
+              <div>
+                <h2>DKPilot AI</h2>
 
-        <div style={styles.historyHeader}>
-          <div>
-            <strong>Chat History</strong>
-
-            <span style={styles.historyCount}>
-              {chatHistory.length}
-            </span>
-          </div>
-
-          {chatHistory.length > 0 && (
-            <button
-              style={styles.clearButton}
-              onClick={clearAllHistory}
-              title="Clear all history"
-            >
-              Clear
-            </button>
-          )}
-        </div>
-
-        <div style={styles.historyContainer}>
-          {historyLoading && (
-            <p style={styles.historyStatus}>
-              Loading history...
-            </p>
-          )}
-
-          {historyError && (
-            <p style={styles.historyError}>
-              {historyError}
-            </p>
-          )}
-
-          {!historyLoading &&
-            !historyError &&
-            chatHistory.length === 0 && (
-              <div style={styles.emptyHistory}>
-                <span>💬</span>
-
-                <p>No previous chats</p>
-              </div>
-            )}
-
-          {chatHistory.map((historyItem) => (
-            <div
-              key={historyItem.id}
-              onClick={() =>
-                openHistoryChat(historyItem)
-              }
-              style={{
-                ...styles.historyItem,
-                ...(selectedHistoryId ===
-                historyItem.id
-                  ? styles.activeHistoryItem
-                  : {}),
-              }}
-            >
-              <div style={styles.historyItemContent}>
-                <strong
-                  style={styles.historyItemTitle}
-                >
-                  {createPreview(
-                    historyItem.userMessage
-                  )}
-                </strong>
-
-                <span style={styles.historyItemDate}>
-                  {formatDate(
-                    historyItem.createdDate
-                  )}
+                <span>
+                  Business Assistant
                 </span>
               </div>
+            )}
+          </div>
 
-              <button
-                style={styles.deleteButton}
-                onClick={(event) =>
-                  deleteHistoryChat(
-                    event,
-                    historyItem.id
+          <button
+            className="sidebar-toggle-button"
+            onClick={() =>
+              setSidebarOpen(
+                (previousValue) =>
+                  !previousValue
+              )
+            }
+            title={
+              sidebarOpen
+                ? "Close Sidebar"
+                : "Open Sidebar"
+            }
+          >
+            {sidebarOpen ? "←" : "→"}
+          </button>
+        </div>
+
+        {sidebarOpen && (
+          <>
+            <button
+              className="new-chat-button"
+              onClick={startNewChat}
+            >
+              ＋ New Chat
+            </button>
+
+            <div className="sidebar-search-wrapper">
+              <span>🔍</span>
+
+              <input
+                type="text"
+                placeholder="Search messages..."
+                value={searchText}
+                onChange={(event) =>
+                  setSearchText(
+                    event.target.value
                   )
                 }
-                title="Delete chat"
+              />
+
+              {searchText && (
+                <button
+                  onClick={() =>
+                    setSearchText("")
+                  }
+                >
+                  ×
+                </button>
+              )}
+            </div>
+
+            <div className="sidebar-section">
+              <div className="sidebar-section-header">
+                <span>
+                  Recent Prompts
+                </span>
+
+                <strong>
+                  {
+                    chatAnalytics
+                      .recentUserPrompts
+                      .length
+                  }
+                </strong>
+              </div>
+
+              {chatAnalytics
+                .recentUserPrompts.length ===
+              0 ? (
+                <div className="empty-prompt-history">
+                  No recent prompts
+                </div>
+              ) : (
+                <div className="recent-prompt-list">
+                  {chatAnalytics.recentUserPrompts.map(
+                    (promptMessage) => (
+                      <button
+                        key={
+                          promptMessage.id
+                        }
+                        className="recent-prompt-item"
+                        onClick={() =>
+                          useSuggestion(
+                            promptMessage.text
+                          )
+                        }
+                        title={
+                          promptMessage.text
+                        }
+                      >
+                        <span>💬</span>
+
+                        <p>
+                          {promptMessage.text}
+                        </p>
+                      </button>
+                    )
+                  )}
+                </div>
+              )}
+            </div>
+
+            <div className="sidebar-bottom">
+              <button
+                className="sidebar-action-button"
+                onClick={() =>
+                  setShowAnalytics(
+                    (previousValue) =>
+                      !previousValue
+                  )
+                }
               >
-                🗑
+                📊{" "}
+                {showAnalytics
+                  ? "Hide Analytics"
+                  : "Show Analytics"}
+              </button>
+
+              <button
+                className="sidebar-action-button"
+                onClick={exportChatAsText}
+              >
+                📥 Export Chat
+              </button>
+
+              <button
+                className="sidebar-danger-button"
+                onClick={startNewChat}
+              >
+                🗑️ Clear Chat
               </button>
             </div>
-          ))}
-        </div>
-
-        <div className="sidebar-note">
-          <p>Business Assistant</p>
-
-          <span>
-            Ask emails, ideas, reports and more.
-          </span>
-        </div>
+          </>
+        )}
       </aside>
 
       <main className="ai-main">
         <header className="ai-header">
-          <div>
-            <h1>DKPilot AI Assistant</h1>
+          <div className="ai-header-left">
+            {!sidebarOpen && (
+              <button
+                className="mobile-sidebar-button"
+                onClick={() =>
+                  setSidebarOpen(true)
+                }
+              >
+                ☰
+              </button>
+            )}
 
-            <p>
-              Your intelligent business automation
-              partner
-            </p>
+            <div>
+              <h1>
+                DKPilot AI Assistant
+              </h1>
+
+              <p>
+                Your intelligent business automation
+                partner
+              </p>
+            </div>
           </div>
 
-          <div className="online-status">
-            <span></span>
-            Online
+          <div className="ai-header-right">
+            <div className="online-status">
+              <span></span>
+              Online
+            </div>
+
+            <div className="header-user">
+              <div className="header-user-avatar">
+                {userName
+                  .charAt(0)
+                  .toUpperCase()}
+              </div>
+
+              <div>
+                <strong>
+                  {userName}
+                </strong>
+
+                <span>
+                  {userEmail ||
+                    "DKPilot User"}
+                </span>
+              </div>
+            </div>
           </div>
         </header>
 
-        <section className="chat-area">
-          {messages.length === 0 && (
-            <div className="welcome-card">
-              <div className="welcome-icon">
-                🤖
+        {showAnalytics && (
+          <section className="chat-analytics-section">
+            <div className="analytics-heading">
+              <div>
+                <h2>
+                  📊 AI Chat Analytics
+                </h2>
+
+                <p>
+                  Live insights calculated from your
+                  current chat history.
+                </p>
               </div>
 
-              <h2>How can I help you today?</h2>
+              <button
+                onClick={() =>
+                  setShowAnalytics(false)
+                }
+              >
+                ✕
+              </button>
+            </div>
 
-              <p>
-                Ask me to create emails, business
-                ideas, reports or professional
-                content.
-              </p>
+            <div className="analytics-grid">
+              <div className="analytics-card analytics-blue">
+                <div className="analytics-card-icon">
+                  💬
+                </div>
+
+                <div>
+                  <span>
+                    Total Messages
+                  </span>
+
+                  <strong>
+                    {
+                      chatAnalytics
+                        .totalMessages
+                    }
+                  </strong>
+
+                  <small>
+                    User and AI messages
+                  </small>
+                </div>
+              </div>
+
+              <div className="analytics-card analytics-purple">
+                <div className="analytics-card-icon">
+                  👤
+                </div>
+
+                <div>
+                  <span>
+                    Your Prompts
+                  </span>
+
+                  <strong>
+                    {
+                      chatAnalytics
+                        .userMessages
+                    }
+                  </strong>
+
+                  <small>
+                    Questions sent to AI
+                  </small>
+                </div>
+              </div>
+
+              <div className="analytics-card analytics-green">
+                <div className="analytics-card-icon">
+                  🤖
+                </div>
+
+                <div>
+                  <span>
+                    AI Responses
+                  </span>
+
+                  <strong>
+                    {
+                      chatAnalytics
+                        .aiResponses
+                    }
+                  </strong>
+
+                  <small>
+                    Successful responses
+                  </small>
+                </div>
+              </div>
+
+              <div className="analytics-card analytics-orange">
+                <div className="analytics-card-icon">
+                  📝
+                </div>
+
+                <div>
+                  <span>
+                    Total Characters
+                  </span>
+
+                  <strong>
+                    {
+                      chatAnalytics
+                        .totalCharacters
+                    }
+                  </strong>
+
+                  <small>
+                    Complete chat content
+                  </small>
+                </div>
+              </div>
+
+              <div className="analytics-card analytics-cyan">
+                <div className="analytics-card-icon">
+                  📏
+                </div>
+
+                <div>
+                  <span>
+                    Average AI Length
+                  </span>
+
+                  <strong>
+                    {
+                      chatAnalytics
+                        .averageResponseLength
+                    }
+                  </strong>
+
+                  <small>
+                    Characters per response
+                  </small>
+                </div>
+              </div>
+
+              <div className="analytics-card analytics-red">
+                <div className="analytics-card-icon">
+                  ⚠️
+                </div>
+
+                <div>
+                  <span>
+                    Failed Responses
+                  </span>
+
+                  <strong>
+                    {
+                      chatAnalytics
+                        .failedResponses
+                    }
+                  </strong>
+
+                  <small>
+                    AI request errors
+                  </small>
+                </div>
+              </div>
+            </div>
+          </section>
+        )}
+
+        <section
+          className="chat-area"
+          ref={chatAreaRef}
+        >
+          {messages.length === 0 && (
+            <div className="welcome-section">
+              <div className="welcome-card">
+                <div className="welcome-icon">
+                  🤖
+                </div>
+
+                <h2>
+                  How can I help you today,
+                  {` ${userName}`}?
+                </h2>
+
+                <p>
+                  Ask DKPilot AI to create emails,
+                  business reports, marketing ideas,
+                  invoice content and professional
+                  documents.
+                </p>
+              </div>
 
               <div className="suggestion-grid">
                 <button
                   onClick={() =>
-                    setMessage(
-                      "Write a professional leave email"
+                    sendSuggestion(
+                      "Write a professional leave email for tomorrow"
                     )
                   }
                 >
-                  ✉️ Write an email
+                  <span className="suggestion-icon">
+                    ✉️
+                  </span>
+
+                  <div>
+                    <strong>
+                      Write an Email
+                    </strong>
+
+                    <p>
+                      Generate professional business
+                      emails.
+                    </p>
+                  </div>
+
+                  <span className="suggestion-arrow">
+                    →
+                  </span>
                 </button>
 
                 <button
                   onClick={() =>
-                    setMessage(
-                      "Give me five marketing ideas for a small business"
+                    sendSuggestion(
+                      "Give me five marketing ideas for a small technology business"
                     )
                   }
                 >
-                  💡 Marketing ideas
+                  <span className="suggestion-icon">
+                    💡
+                  </span>
+
+                  <div>
+                    <strong>
+                      Marketing Ideas
+                    </strong>
+
+                    <p>
+                      Create practical promotion
+                      strategies.
+                    </p>
+                  </div>
+
+                  <span className="suggestion-arrow">
+                    →
+                  </span>
                 </button>
 
                 <button
                   onClick={() =>
-                    setMessage(
-                      "Create a short business report"
+                    sendSuggestion(
+                      "Create a professional weekly business performance report"
                     )
                   }
                 >
-                  📊 Business report
+                  <span className="suggestion-icon">
+                    📊
+                  </span>
+
+                  <div>
+                    <strong>
+                      Business Report
+                    </strong>
+
+                    <p>
+                      Prepare structured business
+                      reports.
+                    </p>
+                  </div>
+
+                  <span className="suggestion-arrow">
+                    →
+                  </span>
+                </button>
+
+                <button
+                  onClick={() =>
+                    sendSuggestion(
+                      "Create a professional invoice description for website development service"
+                    )
+                  }
+                >
+                  <span className="suggestion-icon">
+                    📄
+                  </span>
+
+                  <div>
+                    <strong>
+                      Invoice Content
+                    </strong>
+
+                    <p>
+                      Generate clear invoice
+                      descriptions.
+                    </p>
+                  </div>
+
+                  <span className="suggestion-arrow">
+                    →
+                  </span>
+                </button>
+
+                <button
+                  onClick={() =>
+                    sendSuggestion(
+                      "Create a meeting agenda for a client project discussion"
+                    )
+                  }
+                >
+                  <span className="suggestion-icon">
+                    📅
+                  </span>
+
+                  <div>
+                    <strong>
+                      Meeting Agenda
+                    </strong>
+
+                    <p>
+                      Plan meetings and business
+                      schedules.
+                    </p>
+                  </div>
+
+                  <span className="suggestion-arrow">
+                    →
+                  </span>
+                </button>
+
+                <button
+                  onClick={() =>
+                    sendSuggestion(
+                      "Suggest ways to improve customer satisfaction for a small business"
+                    )
+                  }
+                >
+                  <span className="suggestion-icon">
+                    👥
+                  </span>
+
+                  <div>
+                    <strong>
+                      Customer Support
+                    </strong>
+
+                    <p>
+                      Improve customer relationships.
+                    </p>
+                  </div>
+
+                  <span className="suggestion-arrow">
+                    →
+                  </span>
                 </button>
               </div>
             </div>
           )}
+                    {messages.length > 0 && (
+            <div className="message-list">
+              {filteredMessages.length === 0 ? (
+                <div className="no-search-result">
+                  <div>🔍</div>
 
-          {messages.map((chatMessage) => (
-            <div
-              key={chatMessage.id}
-              className={`message-row ${
-                chatMessage.sender === "user"
-                  ? "user-row"
-                  : "ai-row"
-              }`}
-            >
-              <div className="message-avatar">
-                {chatMessage.sender === "user"
-                  ? "👤"
-                  : "🤖"}
-              </div>
+                  <h3>No matching messages</h3>
 
-              <div
-                className={`message-bubble ${
-                  chatMessage.sender === "user"
-                    ? "user-bubble"
-                    : "ai-bubble"
-                }`}
-              >
-                <p>{chatMessage.text}</p>
-              </div>
+                  <p>
+                    Try another search keyword.
+                  </p>
+                </div>
+              ) : (
+                filteredMessages.map(
+                  (chatMessage, index) => (
+                    <div
+                      key={chatMessage.id}
+                      className={`message-row ${
+                        chatMessage.sender ===
+                        "user"
+                          ? "user-row"
+                          : "ai-row"
+                      }`}
+                    >
+                      <div className="message-avatar">
+                        {chatMessage.sender ===
+                        "user"
+                          ? userName
+                              .charAt(0)
+                              .toUpperCase()
+                          : "🤖"}
+                      </div>
+
+                      <div className="message-content">
+                        <div className="message-header">
+                          <div>
+                            <strong>
+                              {chatMessage.sender ===
+                              "user"
+                                ? userName
+                                : "DKPilot AI"}
+                            </strong>
+
+                            <span>
+                              {formatMessageDate(
+                                chatMessage.createdAt
+                              )}
+                            </span>
+                          </div>
+
+                          <div className="message-actions">
+                            <button
+                              onClick={() =>
+                                copyMessage(
+                                  chatMessage
+                                )
+                              }
+                              title="Copy Message"
+                            >
+                              {copiedMessageId ===
+                              chatMessage.id
+                                ? "✅"
+                                : "📋"}
+                            </button>
+
+                            {chatMessage.sender ===
+                              "ai" && (
+                              <button
+                                onClick={() =>
+                                  regenerateResponse(
+                                    messages.findIndex(
+                                      (item) =>
+                                        item.id ===
+                                        chatMessage.id
+                                    )
+                                  )
+                                }
+                                disabled={loading}
+                                title="Regenerate Response"
+                              >
+                                🔄
+                              </button>
+                            )}
+
+                            <button
+                              onClick={() =>
+                                deleteMessage(
+                                  chatMessage.id
+                                )
+                              }
+                              title="Delete Message"
+                            >
+                              🗑️
+                            </button>
+                          </div>
+                        </div>
+
+                        <div
+                          className={`message-bubble ${
+                            chatMessage.sender ===
+                            "user"
+                              ? "user-bubble"
+                              : chatMessage.isError
+                                ? "error-bubble"
+                                : "ai-bubble"
+                          }`}
+                        >
+                          <p>
+                            {chatMessage.text}
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  )
+                )
+              )}
             </div>
-          ))}
+          )}
 
           {loading && (
             <div className="message-row ai-row">
@@ -534,154 +1213,88 @@ function AIAssistant() {
                 🤖
               </div>
 
-              <div className="message-bubble ai-bubble">
-                <div className="typing-indicator">
-                  <span></span>
-                  <span></span>
-                  <span></span>
+              <div className="message-content">
+                <div className="message-header">
+                  <div>
+                    <strong>
+                      DKPilot AI
+                    </strong>
+
+                    <span>
+                      Thinking...
+                    </span>
+                  </div>
+                </div>
+
+                <div className="message-bubble ai-bubble">
+                  <div className="typing-indicator">
+                    <span></span>
+                    <span></span>
+                    <span></span>
+                  </div>
                 </div>
               </div>
             </div>
           )}
         </section>
 
-        <section className="chat-input-area">
-          <textarea
-            rows="1"
-            placeholder="Message DKPilot AI..."
-            value={message}
-            onChange={(event) =>
-              setMessage(event.target.value)
-            }
-            onKeyDown={handleKeyDown}
-          />
+        <section className="chat-input-section">
+          <div className="chat-input-toolbar">
+            <div className="input-helper-text">
+              <span>
+                💡
+              </span>
 
-          <button
-            onClick={askAI}
-            disabled={
-              loading || !message.trim()
-            }
-          >
-            {loading ? "Sending..." : "Send 🚀"}
-          </button>
+              <p>
+                Enter press pannina send aagum.
+                Shift + Enter use pannina new line
+                varum.
+              </p>
+            </div>
+
+            <div className="message-character-count">
+              {message.length} characters
+            </div>
+          </div>
+
+          <div className="chat-input-area">
+            <textarea
+              rows="1"
+              placeholder="Message DKPilot AI..."
+              value={message}
+              onChange={(event) =>
+                setMessage(
+                  event.target.value
+                )
+              }
+              onKeyDown={
+                handleKeyDown
+              }
+              disabled={loading}
+            />
+
+            <button
+              onClick={() => askAI()}
+              disabled={
+                loading ||
+                !message.trim()
+              }
+            >
+              {loading
+                ? "Sending..."
+                : "Send 🚀"}
+            </button>
+          </div>
+
+          <div className="chat-footer-note">
+            DKPilot AI can make mistakes.
+            Important business information-a
+            verify pannunga.
+          </div>
         </section>
       </main>
     </div>
   );
 }
-
-const styles = {
-  historyHeader: {
-    display: "flex",
-    justifyContent: "space-between",
-    alignItems: "center",
-    gap: "10px",
-    marginTop: "24px",
-    marginBottom: "10px",
-    color: "#e2e8f0",
-    fontSize: "14px",
-  },
-
-  historyCount: {
-    display: "inline-flex",
-    alignItems: "center",
-    justifyContent: "center",
-    minWidth: "21px",
-    height: "21px",
-    marginLeft: "7px",
-    padding: "0 5px",
-    borderRadius: "20px",
-    background: "#2563eb",
-    color: "#ffffff",
-    fontSize: "10px",
-  },
-
-  clearButton: {
-    padding: "5px 8px",
-    border: "none",
-    borderRadius: "6px",
-    background: "#fee2e2",
-    color: "#b91c1c",
-    fontSize: "11px",
-    fontWeight: "bold",
-    cursor: "pointer",
-  },
-
-  historyContainer: {
-    flex: 1,
-    maxHeight: "55vh",
-    overflowY: "auto",
-    paddingRight: "4px",
-  },
-
-  historyStatus: {
-    color: "#94a3b8",
-    fontSize: "12px",
-    textAlign: "center",
-  },
-
-  historyError: {
-    padding: "9px",
-    borderRadius: "7px",
-    background: "rgba(220, 38, 38, 0.15)",
-    color: "#fca5a5",
-    fontSize: "11px",
-    lineHeight: "1.5",
-  },
-
-  emptyHistory: {
-    padding: "20px 10px",
-    textAlign: "center",
-    color: "#94a3b8",
-    fontSize: "12px",
-  },
-
-  historyItem: {
-    display: "grid",
-    gridTemplateColumns: "1fr auto",
-    gap: "8px",
-    alignItems: "center",
-    marginBottom: "7px",
-    padding: "11px",
-    borderRadius: "9px",
-    background: "rgba(255, 255, 255, 0.05)",
-    color: "#e2e8f0",
-    cursor: "pointer",
-    transition: "background 0.2s ease",
-  },
-
-  activeHistoryItem: {
-    background: "rgba(37, 99, 235, 0.3)",
-    border: "1px solid rgba(96, 165, 250, 0.5)",
-  },
-
-  historyItemContent: {
-    minWidth: 0,
-    display: "flex",
-    flexDirection: "column",
-    gap: "5px",
-  },
-
-  historyItemTitle: {
-    overflow: "hidden",
-    textOverflow: "ellipsis",
-    whiteSpace: "nowrap",
-    fontSize: "12px",
-  },
-
-  historyItemDate: {
-    color: "#94a3b8",
-    fontSize: "9px",
-  },
-
-  deleteButton: {
-    padding: "4px",
-    border: "none",
-    background: "transparent",
-    color: "#fca5a5",
-    cursor: "pointer",
-    fontSize: "13px",
-  },
-};
 
 export default AIAssistant;

@@ -4,30 +4,40 @@ import { downloadInvoicePDF } from "../utils/InvoicePDF";
 
 function Invoice() {
   const [customers, setCustomers] = useState([]);
-  const [selectedCustomerId, setSelectedCustomerId] = useState("");
+  const [selectedCustomerId, setSelectedCustomerId] =
+    useState("");
 
   const [clientName, setClientName] = useState("");
   const [clientEmail, setClientEmail] = useState("");
-  const [itemDescription, setItemDescription] = useState("");
+  const [itemDescription, setItemDescription] =
+    useState("");
   const [amount, setAmount] = useState("");
-  const [gstPercentage, setGstPercentage] = useState("");
+  const [gstPercentage, setGstPercentage] =
+    useState("");
 
   const [invoiceHistory, setInvoiceHistory] = useState([]);
-  const [selectedInvoice, setSelectedInvoice] = useState(null);
+  const [selectedInvoice, setSelectedInvoice] =
+    useState(null);
 
   const [message, setMessage] = useState("");
   const [loading, setLoading] = useState(false);
-  const [customerLoading, setCustomerLoading] = useState(false);
-  const [historyLoading, setHistoryLoading] = useState(false);
+  const [customerLoading, setCustomerLoading] =
+    useState(false);
+  const [historyLoading, setHistoryLoading] =
+    useState(false);
 
-  const [aiInvoicePrompt, setAiInvoicePrompt] = useState("");
+  const [aiInvoicePrompt, setAiInvoicePrompt] =
+    useState("");
   const [aiLoading, setAiLoading] = useState(false);
 
   const numericAmount = Number(amount) || 0;
   const numericGst = Number(gstPercentage) || 0;
 
-  const gstAmount = (numericAmount * numericGst) / 100;
-  const totalAmount = numericAmount + gstAmount;
+  const gstAmount =
+    (numericAmount * numericGst) / 100;
+
+  const totalAmount =
+    numericAmount + gstAmount;
 
   const getToken = () => {
     return localStorage.getItem("token");
@@ -62,9 +72,15 @@ function Invoice() {
         setCustomers([]);
       }
     } catch (error) {
-      console.error("Customer loading error:", error);
+      console.error(
+        "Customer loading error:",
+        error
+      );
+
       setCustomers([]);
-      setMessage("Customers load panna mudiyala");
+      setMessage(
+        "Customers load panna mudiyala"
+      );
     } finally {
       setCustomerLoading(false);
     }
@@ -96,16 +112,23 @@ function Invoice() {
         setInvoiceHistory([]);
       }
     } catch (error) {
-      console.error("Invoice history error:", error);
+      console.error(
+        "Invoice history error:",
+        error
+      );
 
       if (error.response?.status === 401) {
-        setMessage("Login expired. Please login again");
+        setMessage(
+          "Login expired. Please login again"
+        );
       } else if (error.response?.status === 403) {
         setMessage(
           "You are not authorized to view invoice history"
         );
       } else {
-        setMessage("Failed to load invoice history");
+        setMessage(
+          "Failed to load invoice history"
+        );
       }
     } finally {
       setHistoryLoading(false);
@@ -124,7 +147,8 @@ function Invoice() {
 
     return customers.find(
       (customer) =>
-        String(customer.id) === String(selectedCustomerId)
+        String(customer.id) ===
+        String(selectedCustomerId)
     );
   }, [customers, selectedCustomerId]);
 
@@ -150,6 +174,87 @@ function Invoice() {
     });
   }, [invoiceHistory, selectedCustomer]);
 
+  const invoiceAnalytics = useMemo(() => {
+    const totalInvoices = invoiceHistory.length;
+
+    const totalRevenue = invoiceHistory.reduce(
+      (sum, invoice) =>
+        sum +
+        (Number(invoice.totalAmount) || 0),
+      0
+    );
+
+    const averageInvoiceValue =
+      totalInvoices > 0
+        ? totalRevenue / totalInvoices
+        : 0;
+
+    const highestInvoice =
+      invoiceHistory.length > 0
+        ? invoiceHistory.reduce(
+            (highest, current) => {
+              const highestAmount =
+                Number(highest.totalAmount) || 0;
+
+              const currentAmount =
+                Number(current.totalAmount) || 0;
+
+              return currentAmount >
+                highestAmount
+                ? current
+                : highest;
+            }
+          )
+        : null;
+
+    const customerRevenueMap = {};
+
+    invoiceHistory.forEach((invoice) => {
+      const customerName =
+        invoice.clientName?.trim() ||
+        "Unknown Customer";
+
+      const invoiceTotal =
+        Number(invoice.totalAmount) || 0;
+
+      if (!customerRevenueMap[customerName]) {
+        customerRevenueMap[customerName] = {
+          name: customerName,
+          totalRevenue: 0,
+          invoiceCount: 0,
+        };
+      }
+
+      customerRevenueMap[
+        customerName
+      ].totalRevenue += invoiceTotal;
+
+      customerRevenueMap[
+        customerName
+      ].invoiceCount += 1;
+    });
+
+    const customerAnalytics =
+      Object.values(customerRevenueMap).sort(
+        (first, second) =>
+          second.totalRevenue -
+          first.totalRevenue
+      );
+
+    const topCustomer =
+      customerAnalytics.length > 0
+        ? customerAnalytics[0]
+        : null;
+
+    return {
+      totalInvoices,
+      totalRevenue,
+      averageInvoiceValue,
+      highestInvoice,
+      topCustomer,
+    };
+  }, [invoiceHistory]);
+
   const handleCustomerSelection = (event) => {
     const customerId = event.target.value;
 
@@ -163,7 +268,9 @@ function Invoice() {
     }
 
     const customer = customers.find(
-      (item) => String(item.id) === String(customerId)
+      (item) =>
+        String(item.id) ===
+        String(customerId)
     );
 
     if (customer) {
@@ -178,7 +285,9 @@ function Invoice() {
 
   const generateInvoiceWithAI = async () => {
     if (!aiInvoicePrompt.trim()) {
-      alert("Please enter an invoice prompt");
+      alert(
+        "Please enter an invoice prompt"
+      );
       return;
     }
 
@@ -201,7 +310,8 @@ function Invoice() {
         {
           headers: {
             Authorization: `Bearer ${token}`,
-            "Content-Type": "application/json",
+            "Content-Type":
+              "application/json",
           },
         }
       );
@@ -209,7 +319,9 @@ function Invoice() {
       let answer = response.data.answer;
 
       if (typeof answer !== "string") {
-        throw new Error("Invalid AI response");
+        throw new Error(
+          "Invalid AI response"
+        );
       }
 
       answer = answer
@@ -220,9 +332,15 @@ function Invoice() {
       const aiResult = JSON.parse(answer);
 
       setSelectedCustomerId("");
-      setClientName(aiResult.clientName || "");
-      setClientEmail(aiResult.clientEmail || "");
-      setItemDescription(aiResult.itemDescription || "");
+      setClientName(
+        aiResult.clientName || ""
+      );
+      setClientEmail(
+        aiResult.clientEmail || ""
+      );
+      setItemDescription(
+        aiResult.itemDescription || ""
+      );
 
       setAmount(
         aiResult.amount !== undefined &&
@@ -234,20 +352,35 @@ function Invoice() {
       setGstPercentage(
         aiResult.gstPercentage !== undefined &&
           aiResult.gstPercentage !== null
-          ? String(aiResult.gstPercentage)
+          ? String(
+              aiResult.gstPercentage
+            )
           : ""
       );
 
-      setMessage("AI filled the invoice successfully");
+      setMessage(
+        "AI filled the invoice successfully"
+      );
     } catch (error) {
-      console.error("AI invoice error:", error);
+      console.error(
+        "AI invoice error:",
+        error
+      );
 
       if (error.response?.status === 401) {
-        setMessage("Login expired. Please login again");
-      } else if (error.response?.status === 403) {
-        setMessage("You are not authorized to use AI invoice");
+        setMessage(
+          "Login expired. Please login again"
+        );
+      } else if (
+        error.response?.status === 403
+      ) {
+        setMessage(
+          "You are not authorized to use AI invoice"
+        );
       } else {
-        setMessage("AI failed to generate invoice");
+        setMessage(
+          "AI failed to generate invoice"
+        );
       }
     } finally {
       setAiLoading(false);
@@ -262,22 +395,30 @@ function Invoice() {
       amount === "" ||
       gstPercentage === ""
     ) {
-      setMessage("Please fill all invoice fields");
+      setMessage(
+        "Please fill all invoice fields"
+      );
       return;
     }
 
     if (!clientEmail.includes("@")) {
-      setMessage("Please enter a valid client email");
+      setMessage(
+        "Please enter a valid client email"
+      );
       return;
     }
 
     if (numericAmount <= 0) {
-      setMessage("Amount must be greater than 0");
+      setMessage(
+        "Amount must be greater than 0"
+      );
       return;
     }
 
     if (numericGst < 0) {
-      setMessage("GST percentage cannot be negative");
+      setMessage(
+        "GST percentage cannot be negative"
+      );
       return;
     }
 
@@ -295,21 +436,31 @@ function Invoice() {
       const response = await axios.post(
         "http://localhost:8081/api/invoices",
         {
-          clientName: clientName.trim(),
-          clientEmail: clientEmail.trim(),
-          itemDescription: itemDescription.trim(),
+          clientName:
+            clientName.trim(),
+
+          clientEmail:
+            clientEmail.trim(),
+
+          itemDescription:
+            itemDescription.trim(),
+
           amount: numericAmount,
           gstPercentage: numericGst,
         },
         {
           headers: {
             Authorization: `Bearer ${token}`,
-            "Content-Type": "application/json",
+            "Content-Type":
+              "application/json",
           },
         }
       );
 
-      setMessage("Invoice created successfully");
+      setMessage(
+        "Invoice created successfully"
+      );
+
       setSelectedInvoice(response.data);
 
       setItemDescription("");
@@ -324,18 +475,31 @@ function Invoice() {
 
       await fetchInvoiceHistory();
     } catch (error) {
-      console.error("Invoice creation error:", error);
+      console.error(
+        "Invoice creation error:",
+        error
+      );
 
       if (error.response?.status === 401) {
-        setMessage("Login expired. Please login again");
-      } else if (error.response?.status === 403) {
+        setMessage(
+          "Login expired. Please login again"
+        );
+      } else if (
+        error.response?.status === 403
+      ) {
         setMessage(
           "You are not authorized to create invoice"
         );
-      } else if (error.response?.data?.message) {
-        setMessage(error.response.data.message);
+      } else if (
+        error.response?.data?.message
+      ) {
+        setMessage(
+          error.response.data.message
+        );
       } else {
-        setMessage("Failed to create invoice");
+        setMessage(
+          "Failed to create invoice"
+        );
       }
     } finally {
       setLoading(false);
@@ -357,16 +521,26 @@ function Invoice() {
     return Number(value || 0).toFixed(2);
   };
 
+  const formatCurrency = (value) => {
+    return new Intl.NumberFormat("en-IN", {
+      style: "currency",
+      currency: "INR",
+      maximumFractionDigits: 2,
+    }).format(Number(value || 0));
+  };
+
   const formatDate = (date) => {
     if (!date) {
       return "-";
     }
 
-    return new Date(date).toLocaleString("en-IN");
+    return new Date(date).toLocaleString(
+      "en-IN"
+    );
   };
 
   return (
-    <div style={styles.page}>
+        <div style={styles.page}>
       <div style={styles.header}>
         <div>
           <h1 style={styles.title}>
@@ -390,9 +564,177 @@ function Invoice() {
         </button>
       </div>
 
+      <div style={styles.analyticsHeader}>
+        <div>
+          <h2 style={styles.analyticsTitle}>
+            📊 Invoice Analytics
+          </h2>
+
+          <p style={styles.analyticsSubtitle}>
+            Live invoice performance from your saved records.
+          </p>
+        </div>
+      </div>
+
+      <div style={styles.analyticsGrid}>
+        <div
+          style={{
+            ...styles.analyticsCard,
+            ...styles.totalInvoiceCard,
+          }}
+        >
+          <div style={styles.analyticsIcon}>
+            📄
+          </div>
+
+          <div>
+            <span style={styles.analyticsLabel}>
+              Total Invoices
+            </span>
+
+            <strong style={styles.analyticsValue}>
+              {historyLoading
+                ? "..."
+                : invoiceAnalytics.totalInvoices}
+            </strong>
+
+            <span style={styles.analyticsNote}>
+              All generated invoices
+            </span>
+          </div>
+        </div>
+
+        <div
+          style={{
+            ...styles.analyticsCard,
+            ...styles.totalRevenueCard,
+          }}
+        >
+          <div style={styles.analyticsIcon}>
+            💰
+          </div>
+
+          <div>
+            <span style={styles.analyticsLabel}>
+              Total Revenue
+            </span>
+
+            <strong style={styles.analyticsValue}>
+              {historyLoading
+                ? "..."
+                : formatCurrency(
+                    invoiceAnalytics.totalRevenue
+                  )}
+            </strong>
+
+            <span style={styles.analyticsNote}>
+              Revenue from invoices
+            </span>
+          </div>
+        </div>
+
+        <div
+          style={{
+            ...styles.analyticsCard,
+            ...styles.averageValueCard,
+          }}
+        >
+          <div style={styles.analyticsIcon}>
+            📈
+          </div>
+
+          <div>
+            <span style={styles.analyticsLabel}>
+              Average Invoice
+            </span>
+
+            <strong style={styles.analyticsValue}>
+              {historyLoading
+                ? "..."
+                : formatCurrency(
+                    invoiceAnalytics.averageInvoiceValue
+                  )}
+            </strong>
+
+            <span style={styles.analyticsNote}>
+              Average invoice value
+            </span>
+          </div>
+        </div>
+
+        <div
+          style={{
+            ...styles.analyticsCard,
+            ...styles.highestValueCard,
+          }}
+        >
+          <div style={styles.analyticsIcon}>
+            🏆
+          </div>
+
+          <div>
+            <span style={styles.analyticsLabel}>
+              Highest Invoice
+            </span>
+
+            <strong style={styles.analyticsValue}>
+              {historyLoading
+                ? "..."
+                : formatCurrency(
+                    invoiceAnalytics.highestInvoice
+                      ?.totalAmount || 0
+                  )}
+            </strong>
+
+            <span style={styles.analyticsNote}>
+              {invoiceAnalytics.highestInvoice
+                ?.clientName || "No invoice data"}
+            </span>
+          </div>
+        </div>
+
+        <div
+          style={{
+            ...styles.analyticsCard,
+            ...styles.topCustomerAnalyticsCard,
+          }}
+        >
+          <div style={styles.analyticsIcon}>
+            👑
+          </div>
+
+          <div style={styles.analyticsContent}>
+            <span style={styles.analyticsLabel}>
+              Top Customer
+            </span>
+
+            <strong style={styles.topCustomerValue}>
+              {historyLoading
+                ? "..."
+                : invoiceAnalytics.topCustomer
+                    ?.name || "No customer data"}
+            </strong>
+
+            <span style={styles.analyticsNote}>
+              {invoiceAnalytics.topCustomer
+                ? `${formatCurrency(
+                    invoiceAnalytics.topCustomer
+                      .totalRevenue
+                  )} • ${
+                    invoiceAnalytics.topCustomer
+                      .invoiceCount
+                  } invoice(s)`
+                : "Create invoices to see insights"}
+            </span>
+          </div>
+        </div>
+      </div>
+
       <div style={styles.mainGrid}>
         <div style={styles.card}>
-          <h2 style={styles.cardTitle}>Create Invoice</h2>
+          <h2 style={styles.cardTitle}>
+            Create Invoice
+          </h2>
 
           <div style={styles.customerBox}>
             <label style={styles.customerLabel}>
@@ -467,7 +809,9 @@ function Invoice() {
             </button>
           </div>
 
-          <label style={styles.label}>Client Name</label>
+          <label style={styles.label}>
+            Client Name
+          </label>
 
           <input
             style={styles.input}
@@ -480,7 +824,9 @@ function Invoice() {
             }}
           />
 
-          <label style={styles.label}>Client Email</label>
+          <label style={styles.label}>
+            Client Email
+          </label>
 
           <input
             style={styles.input}
@@ -508,7 +854,9 @@ function Invoice() {
 
           <div style={styles.twoColumn}>
             <div>
-              <label style={styles.label}>Amount</label>
+              <label style={styles.label}>
+                Amount
+              </label>
 
               <input
                 style={styles.input}
@@ -534,7 +882,9 @@ function Invoice() {
                 placeholder="Example: 18"
                 value={gstPercentage}
                 onChange={(event) =>
-                  setGstPercentage(event.target.value)
+                  setGstPercentage(
+                    event.target.value
+                  )
                 }
               />
             </div>
@@ -543,6 +893,7 @@ function Invoice() {
           <div style={styles.calculationBox}>
             <div style={styles.calculationRow}>
               <span>Base Amount</span>
+
               <strong>
                 ₹{formatAmount(numericAmount)}
               </strong>
@@ -550,6 +901,7 @@ function Invoice() {
 
             <div style={styles.calculationRow}>
               <span>GST Amount</span>
+
               <strong>
                 ₹{formatAmount(gstAmount)}
               </strong>
@@ -557,6 +909,7 @@ function Invoice() {
 
             <div style={styles.totalRow}>
               <span>Total Amount</span>
+
               <strong>
                 ₹{formatAmount(totalAmount)}
               </strong>
@@ -564,7 +917,9 @@ function Invoice() {
           </div>
 
           {message && (
-            <div style={styles.message}>{message}</div>
+            <div style={styles.message}>
+              {message}
+            </div>
           )}
 
           <div style={styles.formButtonRow}>
@@ -630,6 +985,7 @@ function Invoice() {
 
             <div style={styles.calculationRow}>
               <span>Amount</span>
+
               <strong>
                 ₹{formatAmount(numericAmount)}
               </strong>
@@ -637,6 +993,7 @@ function Invoice() {
 
             <div style={styles.calculationRow}>
               <span>GST ({numericGst}%)</span>
+
               <strong>
                 ₹{formatAmount(gstAmount)}
               </strong>
@@ -644,6 +1001,7 @@ function Invoice() {
 
             <div style={styles.totalRow}>
               <span>Total</span>
+
               <strong>
                 ₹{formatAmount(totalAmount)}
               </strong>
@@ -668,7 +1026,9 @@ function Invoice() {
 
           <div style={styles.invoiceCount}>
             {filteredInvoices.length} Invoice
-            {filteredInvoices.length === 1 ? "" : "s"}
+            {filteredInvoices.length === 1
+              ? ""
+              : "s"}
           </div>
         </div>
 
@@ -687,56 +1047,90 @@ function Invoice() {
             <table style={styles.table}>
               <thead>
                 <tr>
-                  <th style={styles.tableHeader}>Client</th>
-                  <th style={styles.tableHeader}>Email</th>
-                  <th style={styles.tableHeader}>Amount</th>
-                  <th style={styles.tableHeader}>GST</th>
-                  <th style={styles.tableHeader}>Total</th>
-                  <th style={styles.tableHeader}>Date</th>
-                  <th style={styles.tableHeader}>Action</th>
+                  <th style={styles.tableHeader}>
+                    Client
+                  </th>
+
+                  <th style={styles.tableHeader}>
+                    Email
+                  </th>
+
+                  <th style={styles.tableHeader}>
+                    Amount
+                  </th>
+
+                  <th style={styles.tableHeader}>
+                    GST
+                  </th>
+
+                  <th style={styles.tableHeader}>
+                    Total
+                  </th>
+
+                  <th style={styles.tableHeader}>
+                    Date
+                  </th>
+
+                  <th style={styles.tableHeader}>
+                    Action
+                  </th>
                 </tr>
               </thead>
 
               <tbody>
-                {filteredInvoices.map((invoice) => (
-                  <tr key={invoice.id}>
-                    <td style={styles.tableCell}>
-                      {invoice.clientName}
-                    </td>
+                {filteredInvoices.map(
+                  (invoice) => (
+                    <tr key={invoice.id}>
+                      <td style={styles.tableCell}>
+                        {invoice.clientName}
+                      </td>
 
-                    <td style={styles.tableCell}>
-                      {invoice.clientEmail}
-                    </td>
+                      <td style={styles.tableCell}>
+                        {invoice.clientEmail}
+                      </td>
 
-                    <td style={styles.tableCell}>
-                      ₹{formatAmount(invoice.amount)}
-                    </td>
+                      <td style={styles.tableCell}>
+                        ₹
+                        {formatAmount(
+                          invoice.amount
+                        )}
+                      </td>
 
-                    <td style={styles.tableCell}>
-                      {invoice.gstPercentage}% / ₹
-                      {formatAmount(invoice.gstAmount)}
-                    </td>
+                      <td style={styles.tableCell}>
+                        {invoice.gstPercentage}% / ₹
+                        {formatAmount(
+                          invoice.gstAmount
+                        )}
+                      </td>
 
-                    <td style={styles.tableCell}>
-                      ₹{formatAmount(invoice.totalAmount)}
-                    </td>
+                      <td style={styles.tableCell}>
+                        ₹
+                        {formatAmount(
+                          invoice.totalAmount
+                        )}
+                      </td>
 
-                    <td style={styles.tableCell}>
-                      {formatDate(invoice.createdDate)}
-                    </td>
+                      <td style={styles.tableCell}>
+                        {formatDate(
+                          invoice.createdDate
+                        )}
+                      </td>
 
-                    <td style={styles.tableCell}>
-                      <button
-                        style={styles.viewButton}
-                        onClick={() =>
-                          setSelectedInvoice(invoice)
-                        }
-                      >
-                        👁 View
-                      </button>
-                    </td>
-                  </tr>
-                ))}
+                      <td style={styles.tableCell}>
+                        <button
+                          style={styles.viewButton}
+                          onClick={() =>
+                            setSelectedInvoice(
+                              invoice
+                            )
+                          }
+                        >
+                          👁 View
+                        </button>
+                      </td>
+                    </tr>
+                  )
+                )}
               </tbody>
             </table>
           </div>
@@ -746,11 +1140,15 @@ function Invoice() {
       {selectedInvoice && (
         <div
           style={styles.modalOverlay}
-          onClick={() => setSelectedInvoice(null)}
+          onClick={() =>
+            setSelectedInvoice(null)
+          }
         >
           <div
             style={styles.modal}
-            onClick={(event) => event.stopPropagation()}
+            onClick={(event) =>
+              event.stopPropagation()
+            }
           >
             <div style={styles.modalHeader}>
               <h2 style={styles.cardTitle}>
@@ -795,22 +1193,31 @@ function Invoice() {
 
               <p>
                 <strong>Created Date:</strong>{" "}
-                {formatDate(selectedInvoice.createdDate)}
+                {formatDate(
+                  selectedInvoice.createdDate
+                )}
               </p>
 
               <hr style={styles.divider} />
 
               <div style={styles.calculationRow}>
                 <span>Amount</span>
+
                 <strong>
-                  ₹{formatAmount(selectedInvoice.amount)}
+                  ₹
+                  {formatAmount(
+                    selectedInvoice.amount
+                  )}
                 </strong>
               </div>
 
               <div style={styles.calculationRow}>
                 <span>
-                  GST ({selectedInvoice.gstPercentage}%)
+                  GST (
+                  {selectedInvoice.gstPercentage}
+                  %)
                 </span>
+
                 <strong>
                   ₹
                   {formatAmount(
@@ -821,6 +1228,7 @@ function Invoice() {
 
               <div style={styles.totalRow}>
                 <span>Total Amount</span>
+
                 <strong>
                   ₹
                   {formatAmount(
@@ -834,7 +1242,9 @@ function Invoice() {
               <button
                 style={styles.downloadButton}
                 onClick={() =>
-                  downloadInvoicePDF(selectedInvoice)
+                  downloadInvoicePDF(
+                    selectedInvoice
+                  )
                 }
               >
                 ⬇ Download PDF
@@ -857,7 +1267,7 @@ function Invoice() {
 }
 
 const styles = {
-  page: {
+    page: {
     minHeight: "100vh",
     padding: "30px",
     background: "#f5f7fb",
@@ -882,6 +1292,114 @@ const styles = {
   subtitle: {
     marginTop: "8px",
     color: "#6b7280",
+  },
+
+  analyticsHeader: {
+    marginBottom: "18px",
+  },
+
+  analyticsTitle: {
+    margin: 0,
+    fontSize: "26px",
+    color: "#111827",
+  },
+
+  analyticsSubtitle: {
+    marginTop: "7px",
+    color: "#6b7280",
+  },
+
+  analyticsGrid: {
+    display: "grid",
+    gridTemplateColumns:
+      "repeat(auto-fit, minmax(230px, 1fr))",
+    gap: "18px",
+    marginBottom: "26px",
+  },
+
+  analyticsCard: {
+    minHeight: "125px",
+    padding: "22px",
+    borderRadius: "16px",
+    display: "flex",
+    alignItems: "center",
+    gap: "16px",
+    color: "#ffffff",
+    boxShadow:
+      "0 10px 25px rgba(15, 23, 42, 0.12)",
+  },
+
+  totalInvoiceCard: {
+    background:
+      "linear-gradient(135deg, #2563eb, #1d4ed8)",
+  },
+
+  totalRevenueCard: {
+    background:
+      "linear-gradient(135deg, #16a34a, #15803d)",
+  },
+
+  averageValueCard: {
+    background:
+      "linear-gradient(135deg, #7c3aed, #6d28d9)",
+  },
+
+  highestValueCard: {
+    background:
+      "linear-gradient(135deg, #ea580c, #c2410c)",
+  },
+
+  topCustomerAnalyticsCard: {
+    background:
+      "linear-gradient(135deg, #0891b2, #0e7490)",
+  },
+
+  analyticsIcon: {
+    width: "56px",
+    height: "56px",
+    flexShrink: 0,
+    borderRadius: "14px",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    background: "rgba(255,255,255,0.18)",
+    fontSize: "27px",
+  },
+
+  analyticsContent: {
+    minWidth: 0,
+  },
+
+  analyticsLabel: {
+    display: "block",
+    fontSize: "13px",
+    opacity: 0.9,
+  },
+
+  analyticsValue: {
+    display: "block",
+    marginTop: "6px",
+    fontSize: "23px",
+    fontWeight: "bold",
+    whiteSpace: "nowrap",
+  },
+
+  topCustomerValue: {
+    display: "block",
+    marginTop: "6px",
+    fontSize: "20px",
+    fontWeight: "bold",
+    overflow: "hidden",
+    textOverflow: "ellipsis",
+    whiteSpace: "nowrap",
+    maxWidth: "190px",
+  },
+
+  analyticsNote: {
+    display: "block",
+    marginTop: "6px",
+    fontSize: "12px",
+    opacity: 0.88,
   },
 
   mainGrid: {

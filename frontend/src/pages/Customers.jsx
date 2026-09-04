@@ -1,8 +1,31 @@
 import { useEffect, useMemo, useState } from "react";
 import axios from "axios";
 
+import {
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  ResponsiveContainer,
+  PieChart,
+  Pie,
+  Cell,
+  Legend,
+} from "recharts";
+
+const CUSTOMER_COLORS = [
+  "#2563eb",
+  "#7c3aed",
+  "#0891b2",
+  "#16a34a",
+  "#ea580c",
+];
+
 function Customers() {
   const [customers, setCustomers] = useState([]);
+  const [invoiceHistory, setInvoiceHistory] = useState([]);
 
   const [formData, setFormData] = useState({
     name: "",
@@ -12,10 +35,19 @@ function Customers() {
     address: "",
   });
 
-  const [editingCustomerId, setEditingCustomerId] = useState(null);
+  const [editingCustomerId, setEditingCustomerId] =
+    useState(null);
+
   const [searchText, setSearchText] = useState("");
+
   const [loading, setLoading] = useState(false);
-  const [customerLoading, setCustomerLoading] = useState(true);
+
+  const [customerLoading, setCustomerLoading] =
+    useState(true);
+
+  const [analyticsLoading, setAnalyticsLoading] =
+    useState(true);
+
   const [message, setMessage] = useState("");
 
   const getToken = () => {
@@ -52,23 +84,86 @@ function Customers() {
         setCustomers([]);
       }
     } catch (error) {
-      console.error("Customer load error:", error);
+      console.error(
+        "Customer load error:",
+        error
+      );
 
       if (
         error.response?.status === 401 ||
         error.response?.status === 403
       ) {
-        setMessage("Session expired. Please login again.");
+        setMessage(
+          "Session expired. Please login again."
+        );
       } else {
-        setMessage("Customers load panna mudiyala.");
+        setMessage(
+          "Customers load panna mudiyala."
+        );
       }
     } finally {
       setCustomerLoading(false);
     }
   };
 
+  const fetchInvoiceHistory = async () => {
+    const token = getToken();
+
+    if (!token) {
+      setMessage("Please login again.");
+      setAnalyticsLoading(false);
+      return;
+    }
+
+    try {
+      setAnalyticsLoading(true);
+
+      const response = await axios.get(
+        "http://localhost:8081/api/invoices/history",
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+
+      if (Array.isArray(response.data)) {
+        setInvoiceHistory(response.data);
+      } else {
+        setInvoiceHistory([]);
+      }
+    } catch (error) {
+      console.error(
+        "Customer analytics invoice error:",
+        error
+      );
+
+      if (
+        error.response?.status === 401 ||
+        error.response?.status === 403
+      ) {
+        setMessage(
+          "Session expired. Please login again."
+        );
+      } else {
+        setMessage(
+          "Customer analytics load panna mudiyala."
+        );
+      }
+    } finally {
+      setAnalyticsLoading(false);
+    }
+  };
+
+  const refreshAllData = async () => {
+    await Promise.all([
+      fetchCustomers(),
+      fetchInvoiceHistory(),
+    ]);
+  };
+
   useEffect(() => {
-    fetchCustomers();
+    refreshAllData();
   }, []);
 
   const handleChange = (event) => {
@@ -97,7 +192,9 @@ function Customers() {
     }
 
     if (!formData.phone.trim()) {
-      alert("Customer phone number enter pannu");
+      alert(
+        "Customer phone number enter pannu"
+      );
       return false;
     }
 
@@ -126,6 +223,13 @@ function Customers() {
       return;
     }
 
+    const token = getToken();
+
+    if (!token) {
+      alert("Please login again.");
+      return;
+    }
+
     try {
       setLoading(true);
       setMessage("");
@@ -134,7 +238,8 @@ function Customers() {
         name: formData.name.trim(),
         email: formData.email.trim(),
         phone: formData.phone.trim(),
-        companyName: formData.companyName.trim(),
+        companyName:
+          formData.companyName.trim(),
         address: formData.address.trim(),
       };
 
@@ -145,12 +250,15 @@ function Customers() {
           {
             headers: {
               ...getHeaders(),
-              "Content-Type": "application/json",
+              "Content-Type":
+                "application/json",
             },
           }
         );
 
-        alert("Customer updated successfully");
+        alert(
+          "Customer updated successfully"
+        );
       } else {
         await axios.post(
           "http://localhost:8081/api/customers",
@@ -158,24 +266,32 @@ function Customers() {
           {
             headers: {
               ...getHeaders(),
-              "Content-Type": "application/json",
+              "Content-Type":
+                "application/json",
             },
           }
         );
 
-        alert("Customer added successfully");
+        alert(
+          "Customer added successfully"
+        );
       }
 
       resetForm();
-      await fetchCustomers();
+      await refreshAllData();
     } catch (error) {
-      console.error("Customer save error:", error);
+      console.error(
+        "Customer save error:",
+        error
+      );
 
       if (
         error.response?.status === 401 ||
         error.response?.status === 403
       ) {
-        alert("Session expired. Please login again.");
+        alert(
+          "Session expired. Please login again."
+        );
       } else {
         alert(
           editingCustomerId
@@ -195,7 +311,8 @@ function Customers() {
       name: customer.name || "",
       email: customer.email || "",
       phone: customer.phone || "",
-      companyName: customer.companyName || "",
+      companyName:
+        customer.companyName || "",
       address: customer.address || "",
     });
 
@@ -222,29 +339,42 @@ function Customers() {
         }
       );
 
-      alert("Customer deleted successfully");
+      alert(
+        "Customer deleted successfully"
+      );
 
-      if (editingCustomerId === customer.id) {
+      if (
+        editingCustomerId === customer.id
+      ) {
         resetForm();
       }
 
-      await fetchCustomers();
+      await refreshAllData();
     } catch (error) {
-      console.error("Customer delete error:", error);
+      console.error(
+        "Customer delete error:",
+        error
+      );
 
       if (
         error.response?.status === 401 ||
         error.response?.status === 403
       ) {
-        alert("Session expired. Please login again.");
+        alert(
+          "Session expired. Please login again."
+        );
       } else {
-        alert("Customer delete panna mudiyala");
+        alert(
+          "Customer delete panna mudiyala"
+        );
       }
     }
   };
 
   const filteredCustomers = useMemo(() => {
-    const searchValue = searchText.toLowerCase().trim();
+    const searchValue = searchText
+      .toLowerCase()
+      .trim();
 
     if (!searchValue) {
       return customers;
@@ -262,31 +392,569 @@ function Customers() {
         .join(" ")
         .toLowerCase();
 
-      return customerDetails.includes(searchValue);
+      return customerDetails.includes(
+        searchValue
+      );
     });
   }, [customers, searchText]);
 
+  const customerAnalytics = useMemo(() => {
+    const revenueMap = {};
+
+    customers.forEach((customer) => {
+      const email = String(
+        customer.email || ""
+      )
+        .trim()
+        .toLowerCase();
+
+      revenueMap[email] = {
+        id: customer.id,
+        name:
+          customer.name || "Unknown Customer",
+        email: customer.email || "",
+        companyName:
+          customer.companyName || "",
+        totalRevenue: 0,
+        invoiceCount: 0,
+      };
+    });
+
+    invoiceHistory.forEach((invoice) => {
+      const invoiceEmail = String(
+        invoice.clientEmail || ""
+      )
+        .trim()
+        .toLowerCase();
+
+      const invoiceName =
+        invoice.clientName ||
+        "Unknown Customer";
+
+      if (!revenueMap[invoiceEmail]) {
+        revenueMap[invoiceEmail] = {
+          id: `invoice-${invoiceEmail}`,
+          name: invoiceName,
+          email: invoice.clientEmail || "",
+          companyName: "",
+          totalRevenue: 0,
+          invoiceCount: 0,
+        };
+      }
+
+      revenueMap[
+        invoiceEmail
+      ].totalRevenue +=
+        Number(invoice.totalAmount) || 0;
+
+      revenueMap[
+        invoiceEmail
+      ].invoiceCount += 1;
+    });
+
+    const customerRevenueList =
+      Object.values(revenueMap).sort(
+        (first, second) =>
+          second.totalRevenue -
+          first.totalRevenue
+      );
+
+    const customersWithInvoices =
+      customerRevenueList.filter(
+        (customer) =>
+          customer.invoiceCount > 0
+      );
+
+    const totalCustomerRevenue =
+      customerRevenueList.reduce(
+        (sum, customer) =>
+          sum + customer.totalRevenue,
+        0
+      );
+
+    const averageRevenuePerCustomer =
+      customersWithInvoices.length > 0
+        ? totalCustomerRevenue /
+          customersWithInvoices.length
+        : 0;
+
+    const topCustomer =
+      customersWithInvoices.length > 0
+        ? customersWithInvoices[0]
+        : null;
+
+    const topFiveCustomers =
+      customersWithInvoices.slice(0, 5);
+
+    const pieChartData =
+      topFiveCustomers.map((customer) => ({
+        name: customer.name,
+        value: customer.totalRevenue,
+      }));
+
+    return {
+      totalCustomers: customers.length,
+      customersWithInvoices:
+        customersWithInvoices.length,
+      totalCustomerRevenue,
+      averageRevenuePerCustomer,
+      topCustomer,
+      topFiveCustomers,
+      pieChartData,
+    };
+  }, [customers, invoiceHistory]);
+
+  const formatCurrency = (value) => {
+    return new Intl.NumberFormat("en-IN", {
+      style: "currency",
+      currency: "INR",
+      maximumFractionDigits: 2,
+    }).format(Number(value || 0));
+  };
+
+  const formatChartCurrency = (value) => {
+    return `₹${Number(
+      value || 0
+    ).toLocaleString("en-IN")}`;
+  };
+
   return (
-    <div style={styles.page}>
+        <div style={styles.page}>
       <div style={styles.container}>
         <div style={styles.header}>
           <div>
-            <h1 style={styles.title}>👥 Customer Management</h1>
+            <h1 style={styles.title}>
+              👥 Customer Management
+            </h1>
 
             <p style={styles.subtitle}>
-              Add, search, edit and manage your business customers.
+              Add, search, edit and analyse your business customers.
             </p>
           </div>
 
-          <div style={styles.customerCount}>
-            <span style={styles.customerCountNumber}>
-              {customers.length}
-            </span>
+          <button
+            onClick={refreshAllData}
+            disabled={customerLoading || analyticsLoading}
+            style={{
+              ...styles.headerRefreshButton,
+              opacity:
+                customerLoading || analyticsLoading
+                  ? 0.7
+                  : 1,
+            }}
+          >
+            {customerLoading || analyticsLoading
+              ? "Loading..."
+              : "🔄 Refresh Data"}
+          </button>
+        </div>
 
-            <span style={styles.customerCountText}>
-              Total Customers
-            </span>
+        <div style={styles.analyticsHeader}>
+          <div>
+            <h2 style={styles.analyticsTitle}>
+              📊 Customer Analytics
+            </h2>
+
+            <p style={styles.analyticsSubtitle}>
+              Customer performance calculated from saved invoices.
+            </p>
           </div>
+        </div>
+
+        <div style={styles.analyticsGrid}>
+          <div
+            style={{
+              ...styles.analyticsCard,
+              ...styles.totalCustomersCard,
+            }}
+          >
+            <div style={styles.analyticsIcon}>
+              👥
+            </div>
+
+            <div>
+              <span style={styles.analyticsLabel}>
+                Total Customers
+              </span>
+
+              <strong style={styles.analyticsValue}>
+                {customerLoading
+                  ? "..."
+                  : customerAnalytics.totalCustomers}
+              </strong>
+
+              <span style={styles.analyticsNote}>
+                Saved customer records
+              </span>
+            </div>
+          </div>
+
+          <div
+            style={{
+              ...styles.analyticsCard,
+              ...styles.activeCustomersCard,
+            }}
+          >
+            <div style={styles.analyticsIcon}>
+              📄
+            </div>
+
+            <div>
+              <span style={styles.analyticsLabel}>
+                Customers with Invoices
+              </span>
+
+              <strong style={styles.analyticsValue}>
+                {analyticsLoading
+                  ? "..."
+                  : customerAnalytics.customersWithInvoices}
+              </strong>
+
+              <span style={styles.analyticsNote}>
+                Customers generating revenue
+              </span>
+            </div>
+          </div>
+
+          <div
+            style={{
+              ...styles.analyticsCard,
+              ...styles.customerRevenueCard,
+            }}
+          >
+            <div style={styles.analyticsIcon}>
+              💰
+            </div>
+
+            <div>
+              <span style={styles.analyticsLabel}>
+                Total Customer Revenue
+              </span>
+
+              <strong style={styles.analyticsValue}>
+                {analyticsLoading
+                  ? "..."
+                  : formatCurrency(
+                      customerAnalytics.totalCustomerRevenue
+                    )}
+              </strong>
+
+              <span style={styles.analyticsNote}>
+                Revenue from all customers
+              </span>
+            </div>
+          </div>
+
+          <div
+            style={{
+              ...styles.analyticsCard,
+              ...styles.averageRevenueCard,
+            }}
+          >
+            <div style={styles.analyticsIcon}>
+              📈
+            </div>
+
+            <div>
+              <span style={styles.analyticsLabel}>
+                Average Revenue
+              </span>
+
+              <strong style={styles.analyticsValue}>
+                {analyticsLoading
+                  ? "..."
+                  : formatCurrency(
+                      customerAnalytics.averageRevenuePerCustomer
+                    )}
+              </strong>
+
+              <span style={styles.analyticsNote}>
+                Per invoiced customer
+              </span>
+            </div>
+          </div>
+
+          <div
+            style={{
+              ...styles.analyticsCard,
+              ...styles.bestCustomerCard,
+            }}
+          >
+            <div style={styles.analyticsIcon}>
+              👑
+            </div>
+
+            <div style={styles.analyticsContent}>
+              <span style={styles.analyticsLabel}>
+                Best Customer
+              </span>
+
+              <strong style={styles.bestCustomerName}>
+                {analyticsLoading
+                  ? "..."
+                  : customerAnalytics.topCustomer?.name ||
+                    "No customer data"}
+              </strong>
+
+              <span style={styles.analyticsNote}>
+                {customerAnalytics.topCustomer
+                  ? `${formatCurrency(
+                      customerAnalytics.topCustomer.totalRevenue
+                    )} • ${
+                      customerAnalytics.topCustomer.invoiceCount
+                    } invoice(s)`
+                  : "Create invoices to see insights"}
+              </span>
+            </div>
+          </div>
+        </div>
+
+        <div style={styles.chartSection}>
+          <div style={styles.chartCard}>
+            <div style={styles.chartHeader}>
+              <div>
+                <h2 style={styles.chartTitle}>
+                  🏆 Top Customer Revenue
+                </h2>
+
+                <p style={styles.chartSubtitle}>
+                  Revenue comparison for your top customers.
+                </p>
+              </div>
+            </div>
+
+            {analyticsLoading ? (
+              <div style={styles.chartEmpty}>
+                Loading customer revenue chart...
+              </div>
+            ) : customerAnalytics.topFiveCustomers.length === 0 ? (
+              <div style={styles.chartEmpty}>
+                No customer invoice data available.
+              </div>
+            ) : (
+              <div style={styles.chartWrapper}>
+                <ResponsiveContainer
+                  width="100%"
+                  height={330}
+                >
+                  <BarChart
+                    data={
+                      customerAnalytics.topFiveCustomers
+                    }
+                    margin={{
+                      top: 20,
+                      right: 20,
+                      left: 15,
+                      bottom: 5,
+                    }}
+                  >
+                    <CartesianGrid
+                      strokeDasharray="3 3"
+                      vertical={false}
+                    />
+
+                    <XAxis
+                      dataKey="name"
+                      tickLine={false}
+                      axisLine={false}
+                    />
+
+                    <YAxis
+                      tickFormatter={(value) =>
+                        `₹${value}`
+                      }
+                      tickLine={false}
+                      axisLine={false}
+                    />
+
+                    <Tooltip
+                      formatter={(value) => [
+                        formatChartCurrency(value),
+                        "Revenue",
+                      ]}
+                    />
+
+                    <Bar
+                      dataKey="totalRevenue"
+                      fill="#2563eb"
+                      radius={[8, 8, 0, 0]}
+                    />
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+            )}
+          </div>
+
+          <div style={styles.chartCard}>
+            <div style={styles.chartHeader}>
+              <div>
+                <h2 style={styles.chartTitle}>
+                  🥧 Revenue Distribution
+                </h2>
+
+                <p style={styles.chartSubtitle}>
+                  Customer share of total invoice revenue.
+                </p>
+              </div>
+            </div>
+
+            {analyticsLoading ? (
+              <div style={styles.chartEmpty}>
+                Loading revenue distribution...
+              </div>
+            ) : customerAnalytics.pieChartData.length === 0 ? (
+              <div style={styles.chartEmpty}>
+                No customer revenue data available.
+              </div>
+            ) : (
+              <div style={styles.chartWrapper}>
+                <ResponsiveContainer
+                  width="100%"
+                  height={330}
+                >
+                  <PieChart>
+                    <Pie
+                      data={
+                        customerAnalytics.pieChartData
+                      }
+                      dataKey="value"
+                      nameKey="name"
+                      cx="50%"
+                      cy="44%"
+                      innerRadius={65}
+                      outerRadius={105}
+                      paddingAngle={4}
+                      label={({ name }) => name}
+                    >
+                      {customerAnalytics.pieChartData.map(
+                        (entry, index) => (
+                          <Cell
+                            key={`${entry.name}-${index}`}
+                            fill={
+                              CUSTOMER_COLORS[
+                                index %
+                                  CUSTOMER_COLORS.length
+                              ]
+                            }
+                          />
+                        )
+                      )}
+                    </Pie>
+
+                    <Tooltip
+                      formatter={(value) => [
+                        formatChartCurrency(value),
+                        "Revenue",
+                      ]}
+                    />
+
+                    <Legend
+                      verticalAlign="bottom"
+                      height={36}
+                    />
+                  </PieChart>
+                </ResponsiveContainer>
+              </div>
+            )}
+          </div>
+        </div>
+
+        <div style={styles.leaderboardCard}>
+          <div style={styles.leaderboardHeader}>
+            <div>
+              <h2 style={styles.cardTitle}>
+                🥇 Top 5 Customer Leaderboard
+              </h2>
+
+              <p style={styles.cardSubtitle}>
+                Customers ranked by total invoice revenue.
+              </p>
+            </div>
+          </div>
+
+          {analyticsLoading ? (
+            <div style={styles.emptyState}>
+              Loading customer leaderboard...
+            </div>
+          ) : customerAnalytics.topFiveCustomers.length === 0 ? (
+            <div style={styles.emptyState}>
+              <div style={styles.emptyIcon}>
+                🏆
+              </div>
+
+              <h3 style={styles.emptyTitle}>
+                No leaderboard data
+              </h3>
+
+              <p style={styles.emptyText}>
+                Generate invoices for customers to build the leaderboard.
+              </p>
+            </div>
+          ) : (
+            <div style={styles.leaderboardList}>
+              {customerAnalytics.topFiveCustomers.map(
+                (customer, index) => (
+                  <div
+                    key={`${customer.email}-${index}`}
+                    style={styles.leaderboardItem}
+                  >
+                    <div
+                      style={{
+                        ...styles.rankBadge,
+                        background:
+                          CUSTOMER_COLORS[
+                            index %
+                              CUSTOMER_COLORS.length
+                          ],
+                      }}
+                    >
+                      {index + 1}
+                    </div>
+
+                    <div style={styles.leaderboardCustomer}>
+                      <div style={styles.leaderboardAvatar}>
+                        {customer.name
+                          .charAt(0)
+                          .toUpperCase()}
+                      </div>
+
+                      <div>
+                        <strong
+                          style={styles.leaderboardName}
+                        >
+                          {customer.name}
+                        </strong>
+
+                        <span
+                          style={styles.leaderboardCompany}
+                        >
+                          {customer.companyName ||
+                            customer.email ||
+                            "Customer"}
+                        </span>
+                      </div>
+                    </div>
+
+                    <div style={styles.leaderboardStats}>
+                      <strong
+                        style={styles.leaderboardRevenue}
+                      >
+                        {formatCurrency(
+                          customer.totalRevenue
+                        )}
+                      </strong>
+
+                      <span
+                        style={styles.leaderboardInvoices}
+                      >
+                        {customer.invoiceCount} invoice(s)
+                      </span>
+                    </div>
+                  </div>
+                )
+              )}
+            </div>
+          )}
         </div>
 
         <div style={styles.contentGrid}>
@@ -317,7 +985,10 @@ function Customers() {
             </div>
 
             <label style={styles.label}>
-              Customer Name <span style={styles.required}>*</span>
+              Customer Name{" "}
+              <span style={styles.required}>
+                *
+              </span>
             </label>
 
             <input
@@ -330,7 +1001,10 @@ function Customers() {
             />
 
             <label style={styles.label}>
-              Customer Email <span style={styles.required}>*</span>
+              Customer Email{" "}
+              <span style={styles.required}>
+                *
+              </span>
             </label>
 
             <input
@@ -343,7 +1017,10 @@ function Customers() {
             />
 
             <label style={styles.label}>
-              Phone Number <span style={styles.required}>*</span>
+              Phone Number{" "}
+              <span style={styles.required}>
+                *
+              </span>
             </label>
 
             <input
@@ -355,7 +1032,9 @@ function Customers() {
               style={styles.input}
             />
 
-            <label style={styles.label}>Company Name</label>
+            <label style={styles.label}>
+              Company Name
+            </label>
 
             <input
               type="text"
@@ -366,7 +1045,9 @@ function Customers() {
               style={styles.input}
             />
 
-            <label style={styles.label}>Address</label>
+            <label style={styles.label}>
+              Address
+            </label>
 
             <textarea
               name="address"
@@ -384,7 +1065,9 @@ function Customers() {
                 style={{
                   ...styles.saveButton,
                   opacity: loading ? 0.7 : 1,
-                  cursor: loading ? "not-allowed" : "pointer",
+                  cursor: loading
+                    ? "not-allowed"
+                    : "pointer",
                 }}
               >
                 {loading
@@ -405,35 +1088,57 @@ function Customers() {
           </div>
 
           <div style={styles.infoCard}>
-            <div style={styles.infoIcon}>👥</div>
+            <div style={styles.infoIcon}>
+              👥
+            </div>
 
             <h2 style={styles.infoTitle}>
               Manage Customers Easily
             </h2>
 
             <p style={styles.infoText}>
-              Customer details can be stored once and reused for
-              invoices, emails and future business activities.
+              Customer details can be stored once and reused for invoices,
+              emails and future business activities.
             </p>
 
             <div style={styles.infoItem}>
-              <span style={styles.infoItemIcon}>✅</span>
-              <span>Add customer details</span>
+              <span style={styles.infoItemIcon}>
+                ✅
+              </span>
+
+              <span>
+                Add customer details
+              </span>
             </div>
 
             <div style={styles.infoItem}>
-              <span style={styles.infoItemIcon}>🔍</span>
-              <span>Search customers quickly</span>
+              <span style={styles.infoItemIcon}>
+                🔍
+              </span>
+
+              <span>
+                Search customers quickly
+              </span>
             </div>
 
             <div style={styles.infoItem}>
-              <span style={styles.infoItemIcon}>✏️</span>
-              <span>Edit customer information</span>
+              <span style={styles.infoItemIcon}>
+                ✏️
+              </span>
+
+              <span>
+                Edit customer information
+              </span>
             </div>
 
             <div style={styles.infoItem}>
-              <span style={styles.infoItemIcon}>🗑️</span>
-              <span>Delete unwanted records</span>
+              <span style={styles.infoItemIcon}>
+                📊
+              </span>
+
+              <span>
+                Analyse customer revenue
+              </span>
             </div>
           </div>
         </div>
@@ -441,7 +1146,9 @@ function Customers() {
         <div style={styles.listCard}>
           <div style={styles.listHeader}>
             <div>
-              <h2 style={styles.cardTitle}>📋 Customer List</h2>
+              <h2 style={styles.cardTitle}>
+                📋 Customer List
+              </h2>
 
               <p style={styles.cardSubtitle}>
                 View and manage all saved customers.
@@ -453,7 +1160,8 @@ function Customers() {
               disabled={customerLoading}
               style={{
                 ...styles.refreshButton,
-                opacity: customerLoading ? 0.7 : 1,
+                opacity:
+                  customerLoading ? 0.7 : 1,
               }}
             >
               {customerLoading
@@ -463,21 +1171,27 @@ function Customers() {
           </div>
 
           <div style={styles.searchWrapper}>
-            <span style={styles.searchIcon}>🔍</span>
+            <span style={styles.searchIcon}>
+              🔍
+            </span>
 
             <input
               type="text"
               placeholder="Search by name, email, phone, company or address..."
               value={searchText}
               onChange={(event) =>
-                setSearchText(event.target.value)
+                setSearchText(
+                  event.target.value
+                )
               }
               style={styles.searchInput}
             />
 
             {searchText && (
               <button
-                onClick={() => setSearchText("")}
+                onClick={() =>
+                  setSearchText("")
+                }
                 style={styles.clearSearchButton}
               >
                 ✕
@@ -491,16 +1205,19 @@ function Customers() {
             </div>
           )}
 
-          {customerLoading && customers.length === 0 && (
-            <div style={styles.emptyState}>
-              Loading customers...
-            </div>
-          )}
+          {customerLoading &&
+            customers.length === 0 && (
+              <div style={styles.emptyState}>
+                Loading customers...
+              </div>
+            )}
 
           {!customerLoading &&
             filteredCustomers.length === 0 && (
               <div style={styles.emptyState}>
-                <div style={styles.emptyIcon}>👤</div>
+                <div style={styles.emptyIcon}>
+                  👤
+                </div>
 
                 <h3 style={styles.emptyTitle}>
                   {searchText
@@ -521,82 +1238,134 @@ function Customers() {
               <table style={styles.table}>
                 <thead>
                   <tr>
-                    <th style={styles.tableHeader}>Customer</th>
-                    <th style={styles.tableHeader}>Contact</th>
-                    <th style={styles.tableHeader}>Company</th>
-                    <th style={styles.tableHeader}>Address</th>
-                    <th style={styles.tableHeader}>Actions</th>
+                    <th style={styles.tableHeader}>
+                      Customer
+                    </th>
+
+                    <th style={styles.tableHeader}>
+                      Contact
+                    </th>
+
+                    <th style={styles.tableHeader}>
+                      Company
+                    </th>
+
+                    <th style={styles.tableHeader}>
+                      Address
+                    </th>
+
+                    <th style={styles.tableHeader}>
+                      Actions
+                    </th>
                   </tr>
                 </thead>
 
                 <tbody>
-                  {filteredCustomers.map((customer) => (
-                    <tr key={customer.id}>
-                      <td style={styles.tableCell}>
-                        <div style={styles.customerProfile}>
-                          <div style={styles.avatar}>
-                            {customer.name
-                              ? customer.name
-                                  .charAt(0)
-                                  .toUpperCase()
-                              : "C"}
-                          </div>
-
-                          <div>
-                            <div style={styles.customerName}>
-                              {customer.name}
+                  {filteredCustomers.map(
+                    (customer) => (
+                      <tr key={customer.id}>
+                        <td style={styles.tableCell}>
+                          <div
+                            style={
+                              styles.customerProfile
+                            }
+                          >
+                            <div style={styles.avatar}>
+                              {customer.name
+                                ? customer.name
+                                    .charAt(0)
+                                    .toUpperCase()
+                                : "C"}
                             </div>
 
-                            <div style={styles.customerId}>
-                              Customer #{customer.id}
+                            <div>
+                              <div
+                                style={
+                                  styles.customerName
+                                }
+                              >
+                                {customer.name}
+                              </div>
+
+                              <div
+                                style={
+                                  styles.customerId
+                                }
+                              >
+                                Customer #{customer.id}
+                              </div>
                             </div>
                           </div>
-                        </div>
-                      </td>
+                        </td>
 
-                      <td style={styles.tableCell}>
-                        <div style={styles.contactText}>
-                          📧 {customer.email}
-                        </div>
-
-                        <div style={styles.contactText}>
-                          📞 {customer.phone}
-                        </div>
-                      </td>
-
-                      <td style={styles.tableCell}>
-                        {customer.companyName || "-"}
-                      </td>
-
-                      <td style={styles.tableCell}>
-                        <div style={styles.addressText}>
-                          {customer.address || "-"}
-                        </div>
-                      </td>
-
-                      <td style={styles.tableCell}>
-                        <div style={styles.actionButtons}>
-                          <button
-                            onClick={() =>
-                              editCustomer(customer)
+                        <td style={styles.tableCell}>
+                          <div
+                            style={
+                              styles.contactText
                             }
-                            style={styles.editButton}
                           >
-                            ✏️ Edit
-                          </button>
+                            📧 {customer.email}
+                          </div>
 
-                          <button
-                            onClick={() =>
-                              deleteCustomer(customer)
+                          <div
+                            style={
+                              styles.contactText
                             }
-                            style={styles.deleteButton}
                           >
-                            🗑️ Delete
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
+                            📞 {customer.phone}
+                          </div>
+                        </td>
+
+                        <td style={styles.tableCell}>
+                          {customer.companyName || "-"}
+                        </td>
+
+                        <td style={styles.tableCell}>
+                          <div
+                            style={
+                              styles.addressText
+                            }
+                          >
+                            {customer.address || "-"}
+                          </div>
+                        </td>
+
+                        <td style={styles.tableCell}>
+                          <div
+                            style={
+                              styles.actionButtons
+                            }
+                          >
+                            <button
+                              onClick={() =>
+                                editCustomer(
+                                  customer
+                                )
+                              }
+                              style={
+                                styles.editButton
+                              }
+                            >
+                              ✏️ Edit
+                            </button>
+
+                            <button
+                              onClick={() =>
+                                deleteCustomer(
+                                  customer
+                                )
+                              }
+                              style={
+                                styles.deleteButton
+                              }
+                            >
+                              🗑️ Delete
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    )
+                  )}
                 </tbody>
               </table>
             </div>
@@ -615,7 +1384,7 @@ function Customers() {
 }
 
 const styles = {
-  page: {
+    page: {
     minHeight: "100vh",
     padding: "35px 20px",
     background: "#f1f5f9",
@@ -651,26 +1420,274 @@ const styles = {
     fontSize: "16px",
   },
 
-  customerCount: {
-    minWidth: "150px",
-    padding: "18px 24px",
-    borderRadius: "16px",
-    background: "#2563eb",
+  headerRefreshButton: {
+    padding: "12px 18px",
+    border: "none",
+    borderRadius: "10px",
+    background: "#0f172a",
     color: "#ffffff",
-    textAlign: "center",
-    boxShadow: "0 10px 25px rgba(37, 99, 235, 0.25)",
+    fontSize: "14px",
+    fontWeight: "bold",
+    cursor: "pointer",
   },
 
-  customerCountNumber: {
+  analyticsHeader: {
+    marginBottom: "18px",
+  },
+
+  analyticsTitle: {
+    margin: 0,
+    fontSize: "27px",
+    color: "#0f172a",
+  },
+
+  analyticsSubtitle: {
+    marginTop: "7px",
+    marginBottom: 0,
+    color: "#64748b",
+  },
+
+  analyticsGrid: {
+    display: "grid",
+    gridTemplateColumns:
+      "repeat(auto-fit, minmax(230px, 1fr))",
+    gap: "18px",
+    marginBottom: "25px",
+  },
+
+  analyticsCard: {
+    minHeight: "125px",
+    padding: "22px",
+    borderRadius: "16px",
+    display: "flex",
+    alignItems: "center",
+    gap: "16px",
+    color: "#ffffff",
+    boxShadow:
+      "0 10px 25px rgba(15, 23, 42, 0.12)",
+  },
+
+  totalCustomersCard: {
+    background:
+      "linear-gradient(135deg, #2563eb, #1d4ed8)",
+  },
+
+  activeCustomersCard: {
+    background:
+      "linear-gradient(135deg, #7c3aed, #6d28d9)",
+  },
+
+  customerRevenueCard: {
+    background:
+      "linear-gradient(135deg, #16a34a, #15803d)",
+  },
+
+  averageRevenueCard: {
+    background:
+      "linear-gradient(135deg, #0891b2, #0e7490)",
+  },
+
+  bestCustomerCard: {
+    background:
+      "linear-gradient(135deg, #ea580c, #c2410c)",
+  },
+
+  analyticsIcon: {
+    width: "56px",
+    height: "56px",
+    flexShrink: 0,
+    borderRadius: "14px",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    background: "rgba(255,255,255,0.18)",
+    fontSize: "27px",
+  },
+
+  analyticsContent: {
+    minWidth: 0,
+  },
+
+  analyticsLabel: {
     display: "block",
-    fontSize: "30px",
+    fontSize: "13px",
+    opacity: 0.9,
+  },
+
+  analyticsValue: {
+    display: "block",
+    marginTop: "6px",
+    fontSize: "23px",
+    fontWeight: "bold",
+    whiteSpace: "nowrap",
+  },
+
+  bestCustomerName: {
+    display: "block",
+    marginTop: "6px",
+    fontSize: "20px",
+    fontWeight: "bold",
+    overflow: "hidden",
+    textOverflow: "ellipsis",
+    whiteSpace: "nowrap",
+    maxWidth: "190px",
+  },
+
+  analyticsNote: {
+    display: "block",
+    marginTop: "6px",
+    fontSize: "12px",
+    opacity: 0.88,
+  },
+
+  chartSection: {
+    display: "grid",
+    gridTemplateColumns:
+      "repeat(auto-fit, minmax(360px, 1fr))",
+    gap: "22px",
+    marginBottom: "25px",
+  },
+
+  chartCard: {
+    padding: "25px",
+    borderRadius: "18px",
+    background: "#ffffff",
+    boxShadow:
+      "0 10px 30px rgba(15, 23, 42, 0.08)",
+  },
+
+  chartHeader: {
+    display: "flex",
+    justifyContent: "space-between",
+    alignItems: "center",
+    gap: "15px",
+    flexWrap: "wrap",
+    marginBottom: "20px",
+  },
+
+  chartTitle: {
+    margin: 0,
+    fontSize: "23px",
+    color: "#0f172a",
+  },
+
+  chartSubtitle: {
+    marginTop: "7px",
+    marginBottom: 0,
+    color: "#64748b",
+  },
+
+  chartWrapper: {
+    width: "100%",
+    minHeight: "330px",
+  },
+
+  chartEmpty: {
+    padding: "80px 20px",
+    border: "1px dashed #cbd5e1",
+    borderRadius: "13px",
+    background: "#f8fafc",
+    color: "#64748b",
+    textAlign: "center",
+  },
+
+  leaderboardCard: {
+    marginBottom: "25px",
+    padding: "28px",
+    borderRadius: "18px",
+    background: "#ffffff",
+    boxShadow:
+      "0 10px 30px rgba(15, 23, 42, 0.08)",
+  },
+
+  leaderboardHeader: {
+    display: "flex",
+    justifyContent: "space-between",
+    alignItems: "center",
+    gap: "15px",
+    flexWrap: "wrap",
+    marginBottom: "20px",
+  },
+
+  leaderboardList: {
+    display: "grid",
+    gap: "12px",
+  },
+
+  leaderboardItem: {
+    display: "grid",
+    gridTemplateColumns: "50px 1fr auto",
+    alignItems: "center",
+    gap: "15px",
+    padding: "16px",
+    border: "1px solid #e2e8f0",
+    borderRadius: "13px",
+    background: "#f8fafc",
+  },
+
+  rankBadge: {
+    width: "38px",
+    height: "38px",
+    borderRadius: "50%",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    color: "#ffffff",
     fontWeight: "bold",
   },
 
-  customerCountText: {
+  leaderboardCustomer: {
+    display: "flex",
+    alignItems: "center",
+    gap: "12px",
+    minWidth: 0,
+  },
+
+  leaderboardAvatar: {
+    width: "42px",
+    height: "42px",
+    flexShrink: 0,
+    borderRadius: "50%",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    background: "#dbeafe",
+    color: "#1d4ed8",
+    fontWeight: "bold",
+  },
+
+  leaderboardName: {
+    display: "block",
+    color: "#0f172a",
+    fontSize: "15px",
+  },
+
+  leaderboardCompany: {
     display: "block",
     marginTop: "4px",
-    fontSize: "13px",
+    color: "#64748b",
+    fontSize: "12px",
+    overflow: "hidden",
+    textOverflow: "ellipsis",
+    whiteSpace: "nowrap",
+    maxWidth: "260px",
+  },
+
+  leaderboardStats: {
+    textAlign: "right",
+  },
+
+  leaderboardRevenue: {
+    display: "block",
+    color: "#0f172a",
+    fontSize: "16px",
+  },
+
+  leaderboardInvoices: {
+    display: "block",
+    marginTop: "4px",
+    color: "#64748b",
+    fontSize: "12px",
   },
 
   contentGrid: {
@@ -685,7 +1702,8 @@ const styles = {
     padding: "28px",
     borderRadius: "18px",
     background: "#ffffff",
-    boxShadow: "0 10px 30px rgba(15, 23, 42, 0.08)",
+    boxShadow:
+      "0 10px 30px rgba(15, 23, 42, 0.08)",
   },
 
   infoCard: {
@@ -694,7 +1712,8 @@ const styles = {
     background:
       "linear-gradient(145deg, #0f172a, #1e293b)",
     color: "#ffffff",
-    boxShadow: "0 10px 30px rgba(15, 23, 42, 0.18)",
+    boxShadow:
+      "0 10px 30px rgba(15, 23, 42, 0.18)",
   },
 
   cardHeader: {
@@ -810,7 +1829,8 @@ const styles = {
     alignItems: "center",
     gap: "12px",
     padding: "11px 0",
-    borderBottom: "1px solid rgba(255, 255, 255, 0.1)",
+    borderBottom:
+      "1px solid rgba(255, 255, 255, 0.1)",
   },
 
   infoItemIcon: {
@@ -822,7 +1842,8 @@ const styles = {
     padding: "28px",
     borderRadius: "18px",
     background: "#ffffff",
-    boxShadow: "0 10px 30px rgba(15, 23, 42, 0.08)",
+    boxShadow:
+      "0 10px 30px rgba(15, 23, 42, 0.08)",
   },
 
   listHeader: {

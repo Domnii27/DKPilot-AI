@@ -34,12 +34,14 @@ function Dashboard() {
     emails: 0,
     schedules: 0,
     totalRevenue: 0,
+
     averageInvoiceValue: 0,
     currentMonthRevenue: 0,
     highestInvoice: null,
     topCustomer: null,
-    monthlyRevenue: [],
     monthlyInvoiceCount: [],
+
+    monthlyRevenue: [],
     recentActivities: [],
     notifications: [],
     notificationCount: 0,
@@ -49,6 +51,7 @@ function Dashboard() {
 
   const [loading, setLoading] = useState(true);
   const [message, setMessage] = useState("");
+
   const [notificationOpen, setNotificationOpen] =
     useState(false);
 
@@ -111,10 +114,14 @@ function Dashboard() {
           Number(response.data.totalRevenue) || 0,
 
         averageInvoiceValue:
-          Number(response.data.averageInvoiceValue) || 0,
+          Number(
+            response.data.averageInvoiceValue
+          ) || 0,
 
         currentMonthRevenue:
-          Number(response.data.currentMonthRevenue) || 0,
+          Number(
+            response.data.currentMonthRevenue
+          ) || 0,
 
         highestInvoice:
           response.data.highestInvoice || null,
@@ -122,16 +129,16 @@ function Dashboard() {
         topCustomer:
           response.data.topCustomer || null,
 
-        monthlyRevenue: Array.isArray(
-          response.data.monthlyRevenue
-        )
-          ? response.data.monthlyRevenue
-          : [],
-
         monthlyInvoiceCount: Array.isArray(
           response.data.monthlyInvoiceCount
         )
           ? response.data.monthlyInvoiceCount
+          : [],
+
+        monthlyRevenue: Array.isArray(
+          response.data.monthlyRevenue
+        )
+          ? response.data.monthlyRevenue
           : [],
 
         recentActivities: Array.isArray(
@@ -147,16 +154,23 @@ function Dashboard() {
           : [],
 
         notificationCount:
-          Number(response.data.notificationCount) || 0,
+          Number(
+            response.data.notificationCount
+          ) || 0,
 
         todayScheduleCount:
-          Number(response.data.todayScheduleCount) || 0,
+          Number(
+            response.data.todayScheduleCount
+          ) || 0,
 
         nextSchedule:
           response.data.nextSchedule || null,
       });
     } catch (error) {
-      console.error("Dashboard data error:", error);
+      console.error(
+        "Dashboard data error:",
+        error
+      );
 
       if (
         error.response?.status === 401 ||
@@ -195,9 +209,9 @@ function Dashboard() {
   };
 
   const formatChartValue = (value) => {
-    return `₹${Number(value || 0).toLocaleString(
-      "en-IN"
-    )}`;
+    return `₹${Number(
+      value || 0
+    ).toLocaleString("en-IN")}`;
   };
 
   const formatActivityDate = (dateValue) => {
@@ -225,7 +239,9 @@ function Dashboard() {
       return "Date not available";
     }
 
-    const date = new Date(`${dateValue}T00:00:00`);
+    const date = new Date(
+      `${dateValue}T00:00:00`
+    );
 
     if (Number.isNaN(date.getTime())) {
       return dateValue;
@@ -336,7 +352,7 @@ function Dashboard() {
     );
 
   return (
-    <div className="dashboard-container">
+        <div className="dashboard-container">
       <div className="sidebar">
         <h2>DKPilot AI</h2>
 
@@ -363,10 +379,6 @@ function Dashboard() {
 
           <li onClick={() => navigate("/schedule")}>
             📅 Schedule
-          </li>
-
-          <li onClick={() => navigate("/business-report")}>
-            📊 Business Report
           </li>
 
           <li onClick={() => navigate("/settings")}>
@@ -407,7 +419,6 @@ function Dashboard() {
                     !notificationOpen
                   )
                 }
-                aria-label="Open notifications"
               >
                 🔔
 
@@ -415,8 +426,7 @@ function Dashboard() {
                   <span
                     style={styles.notificationBadge}
                   >
-                    {dashboardData.notificationCount >
-                    9
+                    {dashboardData.notificationCount > 9
                       ? "9+"
                       : dashboardData.notificationCount}
                   </span>
@@ -540,9 +550,7 @@ function Dashboard() {
                                     styles.notificationTitle
                                   }
                                 >
-                                  {
-                                    notification.title
-                                  }
+                                  {notification.title}
                                 </strong>
 
                                 {notification.isToday && (
@@ -621,9 +629,7 @@ function Dashboard() {
               />
             ) : (
               <div style={styles.profileAvatar}>
-                {userName
-                  .charAt(0)
-                  .toUpperCase()}
+                {userName.charAt(0).toUpperCase()}
               </div>
             )}
           </div>
@@ -645,10 +651,7 @@ function Dashboard() {
               <strong
                 style={styles.nextScheduleTitle}
               >
-                {
-                  dashboardData.nextSchedule
-                    .title
-                }
+                {dashboardData.nextSchedule.title}
               </strong>
 
               <span
@@ -666,9 +669,7 @@ function Dashboard() {
 
             <button
               style={styles.nextScheduleButton}
-              onClick={() =>
-                navigate("/schedule")
-              }
+              onClick={() => navigate("/schedule")}
             >
               View Schedule →
             </button>
@@ -717,9 +718,7 @@ function Dashboard() {
               navigate("/customers")
             }
           >
-            <div style={styles.statIcon}>
-              👥
-            </div>
+            <div style={styles.statIcon}>👥</div>
 
             <div>
               <span style={styles.statNumber}>
@@ -743,9 +742,7 @@ function Dashboard() {
               navigate("/invoice")
             }
           >
-            <div style={styles.statIcon}>
-              📄
-            </div>
+            <div style={styles.statIcon}>📄</div>
 
             <div>
               <span style={styles.statNumber}>
@@ -769,9 +766,7 @@ function Dashboard() {
               navigate("/email")
             }
           >
-            <div style={styles.statIcon}>
-              📧
-            </div>
+            <div style={styles.statIcon}>📧</div>
 
             <div>
               <span style={styles.statNumber}>
@@ -795,9 +790,7 @@ function Dashboard() {
               navigate("/schedule")
             }
           >
-            <div style={styles.statIcon}>
-              📅
-            </div>
+            <div style={styles.statIcon}>📅</div>
 
             <div>
               <span style={styles.statNumber}>
@@ -821,16 +814,10 @@ function Dashboard() {
               navigate("/invoice")
             }
           >
-            <div style={styles.statIcon}>
-              💰
-            </div>
+            <div style={styles.statIcon}>💰</div>
 
             <div>
-              <span
-                style={
-                  styles.revenueNumber
-                }
-              >
+              <span style={styles.revenueNumber}>
                 {loading
                   ? "..."
                   : formatCurrency(
@@ -853,7 +840,8 @@ function Dashboard() {
               </h2>
 
               <p style={styles.sectionSubtitle}>
-                Key invoice performance and customer insights.
+                Key invoice performance and customer
+                insights.
               </p>
             </div>
 
@@ -866,115 +854,220 @@ function Dashboard() {
           </div>
 
           <div style={styles.invoiceMetricGrid}>
-            <div style={{ ...styles.invoiceMetricCard, ...styles.highestInvoiceCard }}>
-              <div style={styles.invoiceMetricIcon}>💰</div>
+            <div
+              style={{
+                ...styles.invoiceMetricCard,
+                ...styles.highestInvoiceCard,
+              }}
+            >
+              <div style={styles.invoiceMetricIcon}>
+                💰
+              </div>
+
               <div>
-                <span style={styles.invoiceMetricLabel}>Highest Invoice</span>
-                <strong style={styles.invoiceMetricValue}>
+                <span style={styles.invoiceMetricLabel}>
+                  Highest Invoice
+                </span>
+
+                <strong
+                  style={styles.invoiceMetricValue}
+                >
                   {loading
                     ? "..."
                     : formatCurrency(
-                        dashboardData.highestInvoice?.totalAmount || 0
+                        dashboardData.highestInvoice
+                          ?.totalAmount || 0
                       )}
                 </strong>
+
                 <span style={styles.invoiceMetricNote}>
-                  {dashboardData.highestInvoice?.clientName || "No invoice data"}
+                  {dashboardData.highestInvoice
+                    ?.clientName || "No invoice data"}
                 </span>
               </div>
             </div>
 
-            <div style={{ ...styles.invoiceMetricCard, ...styles.averageInvoiceCard }}>
-              <div style={styles.invoiceMetricIcon}>📊</div>
+            <div
+              style={{
+                ...styles.invoiceMetricCard,
+                ...styles.averageInvoiceCard,
+              }}
+            >
+              <div style={styles.invoiceMetricIcon}>
+                📊
+              </div>
+
               <div>
-                <span style={styles.invoiceMetricLabel}>Average Invoice</span>
-                <strong style={styles.invoiceMetricValue}>
+                <span style={styles.invoiceMetricLabel}>
+                  Average Invoice
+                </span>
+
+                <strong
+                  style={styles.invoiceMetricValue}
+                >
                   {loading
                     ? "..."
-                    : formatCurrency(dashboardData.averageInvoiceValue)}
+                    : formatCurrency(
+                        dashboardData.averageInvoiceValue
+                      )}
                 </strong>
-                <span style={styles.invoiceMetricNote}>Average order value</span>
+
+                <span style={styles.invoiceMetricNote}>
+                  Average invoice value
+                </span>
               </div>
             </div>
 
-            <div style={{ ...styles.invoiceMetricCard, ...styles.monthRevenueCard }}>
-              <div style={styles.invoiceMetricIcon}>📅</div>
+            <div
+              style={{
+                ...styles.invoiceMetricCard,
+                ...styles.monthRevenueCard,
+              }}
+            >
+              <div style={styles.invoiceMetricIcon}>
+                📅
+              </div>
+
               <div>
-                <span style={styles.invoiceMetricLabel}>Current Month Revenue</span>
-                <strong style={styles.invoiceMetricValue}>
+                <span style={styles.invoiceMetricLabel}>
+                  Current Month Revenue
+                </span>
+
+                <strong
+                  style={styles.invoiceMetricValue}
+                >
                   {loading
                     ? "..."
-                    : formatCurrency(dashboardData.currentMonthRevenue)}
+                    : formatCurrency(
+                        dashboardData.currentMonthRevenue
+                      )}
                 </strong>
-                <span style={styles.invoiceMetricNote}>Revenue generated this month</span>
+
+                <span style={styles.invoiceMetricNote}>
+                  Revenue generated this month
+                </span>
               </div>
             </div>
 
-            <div style={{ ...styles.invoiceMetricCard, ...styles.topCustomerCard }}>
-              <div style={styles.invoiceMetricIcon}>👑</div>
+            <div
+              style={{
+                ...styles.invoiceMetricCard,
+                ...styles.topCustomerCard,
+              }}
+            >
+              <div style={styles.invoiceMetricIcon}>
+                👑
+              </div>
+
               <div>
-                <span style={styles.invoiceMetricLabel}>Top Customer</span>
-                <strong style={styles.topCustomerName}>
-                  {dashboardData.topCustomer?.name || "No customer data"}
+                <span style={styles.invoiceMetricLabel}>
+                  Top Customer
+                </span>
+
+                <strong
+                  style={styles.topCustomerName}
+                >
+                  {dashboardData.topCustomer?.name ||
+                    "No customer data"}
                 </strong>
+
                 <span style={styles.invoiceMetricNote}>
                   {dashboardData.topCustomer
                     ? `${formatCurrency(
-                        dashboardData.topCustomer.totalRevenue
-                      )} • ${dashboardData.topCustomer.invoiceCount} invoice(s)`
+                        dashboardData.topCustomer
+                          .totalRevenue
+                      )} • ${
+                        dashboardData.topCustomer
+                          .invoiceCount
+                      } invoice(s)`
                     : "Create invoices to see insights"}
                 </span>
               </div>
             </div>
           </div>
+        </div>
+                <div style={styles.invoiceCountChartCard}>
+          <div style={styles.chartHeader}>
+            <div>
+              <h2 style={styles.chartTitle}>
+                📄 Monthly Invoice Count
+              </h2>
 
-          <div style={styles.invoiceCountChartCard}>
-            <div style={styles.chartHeader}>
-              <div>
-                <h2 style={styles.chartTitle}>
-                  📄 Monthly Invoice Count
-                </h2>
-
-                <p style={styles.chartSubtitle}>
-                  Number of invoices generated each month.
-                </p>
-              </div>
-
-              <div style={styles.invoiceCountSummary}>
-                <span style={styles.revenueSummaryLabel}>Total Invoices</span>
-                <strong style={styles.invoiceCountSummaryValue}>
-                  {dashboardData.invoices}
-                </strong>
-              </div>
+              <p style={styles.chartSubtitle}>
+                Number of invoices generated each month.
+              </p>
             </div>
 
-            {loading ? (
-              <div style={styles.chartLoading}>
-                Loading invoice count chart...
-              </div>
-            ) : (
-              <div style={styles.chartWrapper}>
-                <ResponsiveContainer width="100%" height={300}>
-                  <BarChart
-                    data={dashboardData.monthlyInvoiceCount}
-                    margin={{ top: 20, right: 20, left: 5, bottom: 5 }}
-                  >
-                    <CartesianGrid strokeDasharray="3 3" vertical={false} />
-                    <XAxis dataKey="month" tickLine={false} axisLine={false} />
-                    <YAxis allowDecimals={false} tickLine={false} axisLine={false} />
-                    <Tooltip
-                      formatter={(value) => [value, "Invoices"]}
-                      labelFormatter={(label) => `Month: ${label}`}
-                    />
-                    <Bar
-                      dataKey="count"
-                      fill="#7c3aed"
-                      radius={[8, 8, 0, 0]}
-                    />
-                  </BarChart>
-                </ResponsiveContainer>
-              </div>
-            )}
+            <div style={styles.invoiceCountSummary}>
+              <span style={styles.revenueSummaryLabel}>
+                Total Invoices
+              </span>
+
+              <strong
+                style={styles.invoiceCountSummaryValue}
+              >
+                {dashboardData.invoices}
+              </strong>
+            </div>
           </div>
+
+          {loading ? (
+            <div style={styles.chartLoading}>
+              Loading invoice count chart...
+            </div>
+          ) : (
+            <div style={styles.chartWrapper}>
+              <ResponsiveContainer
+                width="100%"
+                height={300}
+              >
+                <BarChart
+                  data={
+                    dashboardData.monthlyInvoiceCount
+                  }
+                  margin={{
+                    top: 20,
+                    right: 20,
+                    left: 5,
+                    bottom: 5,
+                  }}
+                >
+                  <CartesianGrid
+                    strokeDasharray="3 3"
+                    vertical={false}
+                  />
+
+                  <XAxis
+                    dataKey="month"
+                    tickLine={false}
+                    axisLine={false}
+                  />
+
+                  <YAxis
+                    allowDecimals={false}
+                    tickLine={false}
+                    axisLine={false}
+                  />
+
+                  <Tooltip
+                    formatter={(value) => [
+                      value,
+                      "Invoices",
+                    ]}
+                    labelFormatter={(label) =>
+                      `Month: ${label}`
+                    }
+                  />
+
+                  <Bar
+                    dataKey="count"
+                    fill="#7c3aed"
+                    radius={[8, 8, 0, 0]}
+                  />
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+          )}
         </div>
 
         <div style={styles.chartCard}>
@@ -985,26 +1078,17 @@ function Dashboard() {
               </h2>
 
               <p style={styles.chartSubtitle}>
-                Revenue calculated from generated
-                invoices.
+                Revenue calculated from generated invoices.
               </p>
             </div>
 
-            <div
-              style={styles.revenueSummary}
-            >
-              <span
-                style={
-                  styles.revenueSummaryLabel
-                }
-              >
+            <div style={styles.revenueSummary}>
+              <span style={styles.revenueSummaryLabel}>
                 Total Revenue
               </span>
 
               <strong
-                style={
-                  styles.revenueSummaryValue
-                }
+                style={styles.revenueSummaryValue}
               >
                 {formatCurrency(
                   dashboardData.totalRevenue
@@ -1024,9 +1108,7 @@ function Dashboard() {
                 height={330}
               >
                 <BarChart
-                  data={
-                    dashboardData.monthlyRevenue
-                  }
+                  data={dashboardData.monthlyRevenue}
                   margin={{
                     top: 20,
                     right: 20,
@@ -1083,8 +1165,8 @@ function Dashboard() {
                 </h2>
 
                 <p style={styles.chartSubtitle}>
-                  Compare customers, invoices,
-                  emails and schedules.
+                  Compare customers, invoices, emails and
+                  schedules.
                 </p>
               </div>
             </div>
@@ -1098,9 +1180,7 @@ function Dashboard() {
                 No business records available.
               </div>
             ) : (
-              <div
-                style={styles.pieChartWrapper}
-              >
+              <div style={styles.pieChartWrapper}>
                 <ResponsiveContainer
                   width="100%"
                   height={360}
@@ -1115,10 +1195,7 @@ function Dashboard() {
                       innerRadius={75}
                       outerRadius={125}
                       paddingAngle={4}
-                      label={({
-                        name,
-                        value,
-                      }) =>
+                      label={({ name, value }) =>
                         `${name}: ${value}`
                       }
                     >
@@ -1155,8 +1232,7 @@ function Dashboard() {
             </h2>
 
             <p style={styles.summarySubtitle}>
-              Current records available in your
-              platform.
+              Current records available in your platform.
             </p>
 
             {distributionData.map(
@@ -1165,11 +1241,7 @@ function Dashboard() {
                   style={styles.summaryItem}
                   key={item.name}
                 >
-                  <div
-                    style={
-                      styles.summaryItemLeft
-                    }
-                  >
+                  <div style={styles.summaryItemLeft}>
                     <span
                       style={{
                         ...styles.summaryDot,
@@ -1181,16 +1253,12 @@ function Dashboard() {
                     <span>{item.name}</span>
                   </div>
 
-                  <strong>
-                    {item.value}
-                  </strong>
+                  <strong>{item.value}</strong>
                 </div>
               )
             )}
 
-            <div
-              style={styles.summaryRevenue}
-            >
+            <div style={styles.summaryRevenue}>
               <span>Total Revenue</span>
 
               <strong>
@@ -1203,24 +1271,19 @@ function Dashboard() {
         </div>
 
         <div style={styles.activitiesCard}>
-          <div
-            style={styles.activitiesHeader}
-          >
+          <div style={styles.activitiesHeader}>
             <div>
               <h2 style={styles.chartTitle}>
                 🕒 Recent Activities
               </h2>
 
               <p style={styles.chartSubtitle}>
-                Latest invoices, emails and
-                scheduled tasks.
+                Latest invoices, emails and scheduled tasks.
               </p>
             </div>
 
             <button
-              style={
-                styles.activityRefreshButton
-              }
+              style={styles.activityRefreshButton}
               onClick={fetchDashboardData}
               disabled={loading}
             >
@@ -1232,22 +1295,18 @@ function Dashboard() {
             <div style={styles.emptyActivity}>
               Loading recent activities...
             </div>
-          ) : dashboardData.recentActivities
-              .length === 0 ? (
+          ) : dashboardData.recentActivities.length ===
+            0 ? (
             <div style={styles.emptyActivity}>
-              <div
-                style={
-                  styles.emptyActivityIcon
-                }
-              >
+              <div style={styles.emptyActivityIcon}>
                 🕒
               </div>
 
               <h3>No recent activities</h3>
 
               <p>
-                Create an invoice, send an email
-                or add a schedule.
+                Create an invoice, send an email or add a
+                schedule.
               </p>
             </div>
           ) : (
@@ -1265,60 +1324,41 @@ function Dashboard() {
                         activity.id ||
                         `${activity.type}-${index}`
                       }
-                      style={
-                        styles.activityItem
-                      }
+                      style={styles.activityItem}
                       onClick={() =>
                         openActivity(activity)
                       }
                     >
-                      <div
-                        style={
-                          styles.timelineColumn
-                        }
-                      >
+                      <div style={styles.timelineColumn}>
                         <div
                           style={{
                             ...styles.activityIcon,
                             background:
                               `${activityColor}18`,
-                            color:
-                              activityColor,
+                            color: activityColor,
                             borderColor:
                               `${activityColor}45`,
                           }}
                         >
-                          {activity.icon ||
-                            "🔔"}
+                          {activity.icon || "🔔"}
                         </div>
 
                         {index <
                           dashboardData
-                            .recentActivities
-                            .length -
+                            .recentActivities.length -
                             1 && (
                           <div
-                            style={
-                              styles.timelineLine
-                            }
+                            style={styles.timelineLine}
                           />
                         )}
                       </div>
 
-                      <div
-                        style={
-                          styles.activityContent
-                        }
-                      >
+                      <div style={styles.activityContent}>
                         <div
-                          style={
-                            styles.activityTitleRow
-                          }
+                          style={styles.activityTitleRow}
                         >
                           <h3
-                            style={
-                              styles.activityTitle
-                            }
+                            style={styles.activityTitle}
                           >
                             {activity.title}
                           </h3>
@@ -1328,8 +1368,7 @@ function Dashboard() {
                               ...styles.activityBadge,
                               background:
                                 `${activityColor}18`,
-                              color:
-                                activityColor,
+                              color: activityColor,
                             }}
                           >
                             {activity.type}
@@ -1341,16 +1380,10 @@ function Dashboard() {
                             styles.activityDescription
                           }
                         >
-                          {
-                            activity.description
-                          }
+                          {activity.description}
                         </p>
 
-                        <p
-                          style={
-                            styles.activityDate
-                          }
-                        >
+                        <p style={styles.activityDate}>
                           🕒{" "}
                           {formatActivityDate(
                             activity.date
@@ -1358,11 +1391,7 @@ function Dashboard() {
                         </p>
                       </div>
 
-                      <div
-                        style={
-                          styles.activityArrow
-                        }
-                      >
+                      <div style={styles.activityArrow}>
                         →
                       </div>
                     </div>
@@ -1379,8 +1408,7 @@ function Dashboard() {
           </h2>
 
           <p style={styles.sectionSubtitle}>
-            Open a module and continue your
-            business work.
+            Open a module and continue your business work.
           </p>
         </div>
 
@@ -1392,8 +1420,7 @@ function Dashboard() {
             <h3>🤖 AI Assistant</h3>
 
             <p>
-              Ask questions and generate
-              business content.
+              Ask questions and generate business content.
             </p>
 
             <span style={styles.openText}>
@@ -1403,15 +1430,12 @@ function Dashboard() {
 
           <div
             className="dashboard-card"
-            onClick={() =>
-              navigate("/email")
-            }
+            onClick={() => navigate("/email")}
           >
             <h3>📧 AI Email</h3>
 
             <p>
-              Generate and send professional
-              emails.
+              Generate and send professional emails.
             </p>
 
             <span style={styles.openText}>
@@ -1421,15 +1445,12 @@ function Dashboard() {
 
           <div
             className="dashboard-card"
-            onClick={() =>
-              navigate("/invoice")
-            }
+            onClick={() => navigate("/invoice")}
           >
             <h3>📄 Invoice</h3>
 
             <p>
-              Create invoices and download PDF
-              files.
+              Create invoices and download PDF files.
             </p>
 
             <span style={styles.openText}>
@@ -1439,15 +1460,12 @@ function Dashboard() {
 
           <div
             className="dashboard-card"
-            onClick={() =>
-              navigate("/customers")
-            }
+            onClick={() => navigate("/customers")}
           >
             <h3>👥 Customers</h3>
 
             <p>
-              Add, search, edit and manage
-              customers.
+              Add, search, edit and manage customers.
             </p>
 
             <span style={styles.openText}>
@@ -1457,15 +1475,12 @@ function Dashboard() {
 
           <div
             className="dashboard-card"
-            onClick={() =>
-              navigate("/schedule")
-            }
+            onClick={() => navigate("/schedule")}
           >
             <h3>📅 Schedule</h3>
 
             <p>
-              Manage meetings and business
-              tasks.
+              Manage meetings and business tasks.
             </p>
 
             <span style={styles.openText}>
@@ -1475,33 +1490,12 @@ function Dashboard() {
 
           <div
             className="dashboard-card"
-            onClick={() =>
-              navigate("/business-report")
-            }
-          >
-            <h3>📊 Business Report</h3>
-
-            <p>
-              Generate AI-powered business reports
-              and insights.
-            </p>
-
-            <span style={styles.openText}>
-              Generate Report →
-            </span>
-          </div>
-
-          <div
-            className="dashboard-card"
-            onClick={() =>
-              navigate("/settings")
-            }
+            onClick={() => navigate("/settings")}
           >
             <h3>⚙️ Settings</h3>
 
             <p>
-              Manage your account and
-              application settings.
+              Manage your account and application settings.
             </p>
 
             <span style={styles.openText}>
@@ -1515,7 +1509,7 @@ function Dashboard() {
 }
 
 const styles = {
-  userEmail: {
+    userEmail: {
     marginTop: "6px",
     color: "#64748b",
     fontSize: "14px",
@@ -1907,11 +1901,12 @@ const styles = {
   },
 
   revenueNumber: {
-  display: "block",
-  fontSize: "21px",
-  fontWeight: "bold",
-  whiteSpace: "nowrap",
-},
+    display: "block",
+    fontSize: "21px",
+    fontWeight: "bold",
+    whiteSpace: "nowrap",
+  },
+
   statLabel: {
     display: "block",
     marginTop: "5px",
@@ -1944,7 +1939,8 @@ const styles = {
 
   invoiceMetricGrid: {
     display: "grid",
-    gridTemplateColumns: "repeat(auto-fit, minmax(230px, 1fr))",
+    gridTemplateColumns:
+      "repeat(auto-fit, minmax(230px, 1fr))",
     gap: "18px",
   },
 
@@ -1956,23 +1952,28 @@ const styles = {
     alignItems: "center",
     gap: "16px",
     color: "#ffffff",
-    boxShadow: "0 10px 25px rgba(15, 23, 42, 0.12)",
+    boxShadow:
+      "0 10px 25px rgba(15, 23, 42, 0.12)",
   },
 
   highestInvoiceCard: {
-    background: "linear-gradient(135deg, #7c3aed, #5b21b6)",
+    background:
+      "linear-gradient(135deg, #7c3aed, #5b21b6)",
   },
 
   averageInvoiceCard: {
-    background: "linear-gradient(135deg, #0284c7, #0369a1)",
+    background:
+      "linear-gradient(135deg, #0284c7, #0369a1)",
   },
 
   monthRevenueCard: {
-    background: "linear-gradient(135deg, #16a34a, #15803d)",
+    background:
+      "linear-gradient(135deg, #16a34a, #15803d)",
   },
 
   topCustomerCard: {
-    background: "linear-gradient(135deg, #ea580c, #c2410c)",
+    background:
+      "linear-gradient(135deg, #ea580c, #c2410c)",
   },
 
   invoiceMetricIcon: {
@@ -2024,7 +2025,8 @@ const styles = {
     padding: "25px",
     borderRadius: "18px",
     background: "#ffffff",
-    boxShadow: "0 10px 30px rgba(15, 23, 42, 0.08)",
+    boxShadow:
+      "0 10px 30px rgba(15, 23, 42, 0.08)",
   },
 
   invoiceCountSummary: {

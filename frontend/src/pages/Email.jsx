@@ -1,20 +1,49 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import axios from "axios";
+
+import {
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  ResponsiveContainer,
+  PieChart,
+  Pie,
+  Cell,
+  Legend,
+} from "recharts";
+
+const EMAIL_COLORS = [
+  "#2563eb",
+  "#7c3aed",
+  "#0891b2",
+  "#16a34a",
+  "#ea580c",
+];
 
 function Email() {
   const [to, setTo] = useState("");
   const [subject, setSubject] = useState("");
   const [prompt, setPrompt] = useState("");
-  const [generatedEmail, setGeneratedEmail] = useState("");
+  const [generatedEmail, setGeneratedEmail] =
+    useState("");
 
   const [loading, setLoading] = useState(false);
   const [sending, setSending] = useState(false);
 
-  const [emailHistory, setEmailHistory] = useState([]);
-  const [historyLoading, setHistoryLoading] = useState(false);
-  const [historyError, setHistoryError] = useState("");
+  const [emailHistory, setEmailHistory] =
+    useState([]);
 
-  const [selectedEmail, setSelectedEmail] = useState(null);
+  const [historyLoading, setHistoryLoading] =
+    useState(false);
+
+  const [historyError, setHistoryError] =
+    useState("");
+
+  const [selectedEmail, setSelectedEmail] =
+    useState(null);
 
   const getToken = () => {
     return localStorage.getItem("token");
@@ -47,13 +76,18 @@ function Email() {
         setEmailHistory([]);
       }
     } catch (error) {
-      console.error("Email history error:", error);
+      console.error(
+        "Email history error:",
+        error
+      );
 
       if (
         error.response?.status === 401 ||
         error.response?.status === 403
       ) {
-        setHistoryError("Session expired. Please login again.");
+        setHistoryError(
+          "Session expired. Please login again."
+        );
       } else {
         setHistoryError(
           "Unable to load email history. Please check backend."
@@ -70,7 +104,9 @@ function Email() {
 
   const generateEmail = async () => {
     if (!prompt.trim()) {
-      alert("Please enter your email requirement");
+      alert(
+        "Please enter your email requirement"
+      );
       return;
     }
 
@@ -108,17 +144,26 @@ Include a suitable subject line, greeting, body, closing, and sender name as San
         }
       );
 
-      setGeneratedEmail(response.data.answer);
+      setGeneratedEmail(
+        response.data.answer || ""
+      );
     } catch (error) {
-      console.error("Email generation error:", error);
+      console.error(
+        "Email generation error:",
+        error
+      );
 
       if (
         error.response?.status === 401 ||
         error.response?.status === 403
       ) {
-        alert("Session expired. Please login again.");
+        alert(
+          "Session expired. Please login again."
+        );
       } else {
-        alert("Email generation failed. Please try again.");
+        alert(
+          "Email generation failed. Please try again."
+        );
       }
     } finally {
       setLoading(false);
@@ -127,17 +172,23 @@ Include a suitable subject line, greeting, body, closing, and sender name as San
 
   const sendEmail = async () => {
     if (!to.trim()) {
-      alert("Please enter recipient email");
+      alert(
+        "Please enter recipient email"
+      );
       return;
     }
 
     if (!subject.trim()) {
-      alert("Please enter email subject");
+      alert(
+        "Please enter email subject"
+      );
       return;
     }
 
     if (!generatedEmail.trim()) {
-      alert("Please generate the email first");
+      alert(
+        "Please generate the email first"
+      );
       return;
     }
 
@@ -165,19 +216,29 @@ Include a suitable subject line, greeting, body, closing, and sender name as San
         }
       );
 
-      alert(response.data || "Email Sent Successfully");
+      alert(
+        response.data ||
+          "Email Sent Successfully"
+      );
 
       await loadEmailHistory();
     } catch (error) {
-      console.error("Email sending error:", error);
+      console.error(
+        "Email sending error:",
+        error
+      );
 
       if (
         error.response?.status === 401 ||
         error.response?.status === 403
       ) {
-        alert("Session expired. Please login again.");
+        alert(
+          "Session expired. Please login again."
+        );
       } else {
-        alert("Email sending failed. Please check backend terminal.");
+        alert(
+          "Email sending failed. Please check backend terminal."
+        );
       }
     } finally {
       setSending(false);
@@ -190,8 +251,13 @@ Include a suitable subject line, greeting, body, closing, and sender name as San
     }
 
     try {
-      await navigator.clipboard.writeText(generatedEmail);
-      alert("Email copied successfully");
+      await navigator.clipboard.writeText(
+        generatedEmail
+      );
+
+      alert(
+        "Email copied successfully"
+      );
     } catch (error) {
       console.error("Copy error:", error);
       alert("Unable to copy email");
@@ -230,13 +296,18 @@ Include a suitable subject line, greeting, body, closing, and sender name as San
       return "No content";
     }
 
-    const cleanedContent = content.replace(/\s+/g, " ").trim();
+    const cleanedContent = content
+      .replace(/\s+/g, " ")
+      .trim();
 
     if (cleanedContent.length <= 100) {
       return cleanedContent;
     }
 
-    return `${cleanedContent.substring(0, 100)}...`;
+    return `${cleanedContent.substring(
+      0,
+      100
+    )}...`;
   };
 
   const openEmailModal = (email) => {
@@ -247,114 +318,553 @@ Include a suitable subject line, greeting, body, closing, and sender name as San
     setSelectedEmail(null);
   };
 
-  return (
-    <div
-      style={{
-        minHeight: "100vh",
-        background: "#f4f7fb",
-        padding: "40px 20px",
-        fontFamily: "Arial, Helvetica, sans-serif",
-      }}
-    >
-      <div
-        style={{
-          maxWidth: "1050px",
-          margin: "0 auto",
-        }}
-      >
-        <div
-          style={{
-            background: "white",
-            padding: "30px",
-            borderRadius: "18px",
-            boxShadow: "0 10px 30px rgba(15, 23, 42, 0.08)",
-          }}
-        >
-          <h1
-            style={{
-              marginTop: 0,
-              color: "#0f172a",
-            }}
-          >
-            📧 AI Email Generator
-          </h1>
+  const emailAnalytics = useMemo(() => {
+    const totalEmails = emailHistory.length;
 
-          <p
+    const today = new Date();
+
+    const todayString =
+      today.toDateString();
+
+    const emailsSentToday =
+      emailHistory.filter((email) => {
+        if (!email.sentDate) {
+          return false;
+        }
+
+        const sentDate = new Date(
+          email.sentDate
+        );
+
+        if (
+          Number.isNaN(
+            sentDate.getTime()
+          )
+        ) {
+          return false;
+        }
+
+        return (
+          sentDate.toDateString() ===
+          todayString
+        );
+      }).length;
+
+    const recipientMap = {};
+    const subjectMap = {};
+    const dailyMap = {};
+
+    emailHistory.forEach((email) => {
+      const recipient = String(
+        email.toEmail || "Unknown"
+      )
+        .trim()
+        .toLowerCase();
+
+      const subjectValue = String(
+        email.subject || "No Subject"
+      ).trim();
+
+      if (!recipientMap[recipient]) {
+        recipientMap[recipient] = {
+          email:
+            email.toEmail || "Unknown",
+          count: 0,
+        };
+      }
+
+      recipientMap[recipient].count += 1;
+
+      if (!subjectMap[subjectValue]) {
+        subjectMap[subjectValue] = 0;
+      }
+
+      subjectMap[subjectValue] += 1;
+
+      if (email.sentDate) {
+        const date = new Date(
+          email.sentDate
+        );
+
+        if (
+          !Number.isNaN(
+            date.getTime()
+          )
+        ) {
+          const dayKey =
+            date.toLocaleDateString(
+              "en-IN",
+              {
+                day: "2-digit",
+                month: "short",
+              }
+            );
+
+          if (!dailyMap[dayKey]) {
+            dailyMap[dayKey] = 0;
+          }
+
+          dailyMap[dayKey] += 1;
+        }
+      }
+    });
+
+    const recipientList =
+      Object.values(recipientMap).sort(
+        (first, second) =>
+          second.count - first.count
+      );
+
+    const subjectList =
+      Object.entries(subjectMap).sort(
+        (first, second) =>
+          second[1] - first[1]
+      );
+
+    const topRecipient =
+      recipientList.length > 0
+        ? recipientList[0]
+        : null;
+
+    const mostUsedSubject =
+      subjectList.length > 0
+        ? {
+            subject: subjectList[0][0],
+            count: subjectList[0][1],
+          }
+        : null;
+
+    const uniqueRecipients =
+      recipientList.length;
+
+    const recipientPieData =
+      recipientList
+        .slice(0, 5)
+        .map((recipient) => ({
+          name: recipient.email,
+          value: recipient.count,
+        }));
+
+    const dailyEmailData =
+      Object.entries(dailyMap)
+        .map(([day, count]) => ({
+          day,
+          count,
+        }))
+        .slice(-7);
+
+    return {
+      totalEmails,
+      emailsSentToday,
+      uniqueRecipients,
+      topRecipient,
+      mostUsedSubject,
+      recipientPieData,
+      dailyEmailData,
+    };
+  }, [emailHistory]);
+
+  return (
+        <div style={styles.page}>
+      <div style={styles.container}>
+        <div style={styles.header}>
+          <div>
+            <h1 style={styles.title}>
+              📧 AI Email Generator
+            </h1>
+
+            <p style={styles.subtitle}>
+              Generate professional emails, send them and track email analytics.
+            </p>
+          </div>
+
+          <button
+            onClick={loadEmailHistory}
+            disabled={historyLoading}
             style={{
-              color: "#64748b",
-              marginBottom: "25px",
+              ...styles.headerRefreshButton,
+              opacity: historyLoading ? 0.7 : 1,
+              cursor: historyLoading
+                ? "not-allowed"
+                : "pointer",
             }}
           >
-            Enter the email details and let DKPilot AI generate a professional
-            email for you.
+            {historyLoading
+              ? "Loading..."
+              : "🔄 Refresh Data"}
+          </button>
+        </div>
+
+        <div style={styles.analyticsHeader}>
+          <div>
+            <h2 style={styles.analyticsTitle}>
+              📊 Email Analytics
+            </h2>
+
+            <p style={styles.analyticsSubtitle}>
+              Live email performance calculated from sent email history.
+            </p>
+          </div>
+        </div>
+
+        <div style={styles.analyticsGrid}>
+          <div
+            style={{
+              ...styles.analyticsCard,
+              ...styles.totalEmailsCard,
+            }}
+          >
+            <div style={styles.analyticsIcon}>
+              📧
+            </div>
+
+            <div>
+              <span style={styles.analyticsLabel}>
+                Total Emails Sent
+              </span>
+
+              <strong style={styles.analyticsValue}>
+                {historyLoading
+                  ? "..."
+                  : emailAnalytics.totalEmails}
+              </strong>
+
+              <span style={styles.analyticsNote}>
+                All successfully sent emails
+              </span>
+            </div>
+          </div>
+
+          <div
+            style={{
+              ...styles.analyticsCard,
+              ...styles.todayEmailsCard,
+            }}
+          >
+            <div style={styles.analyticsIcon}>
+              📅
+            </div>
+
+            <div>
+              <span style={styles.analyticsLabel}>
+                Emails Sent Today
+              </span>
+
+              <strong style={styles.analyticsValue}>
+                {historyLoading
+                  ? "..."
+                  : emailAnalytics.emailsSentToday}
+              </strong>
+
+              <span style={styles.analyticsNote}>
+                Emails sent on the current date
+              </span>
+            </div>
+          </div>
+
+          <div
+            style={{
+              ...styles.analyticsCard,
+              ...styles.uniqueRecipientsCard,
+            }}
+          >
+            <div style={styles.analyticsIcon}>
+              👥
+            </div>
+
+            <div>
+              <span style={styles.analyticsLabel}>
+                Unique Recipients
+              </span>
+
+              <strong style={styles.analyticsValue}>
+                {historyLoading
+                  ? "..."
+                  : emailAnalytics.uniqueRecipients}
+              </strong>
+
+              <span style={styles.analyticsNote}>
+                Different recipient addresses
+              </span>
+            </div>
+          </div>
+
+          <div
+            style={{
+              ...styles.analyticsCard,
+              ...styles.topRecipientCard,
+            }}
+          >
+            <div style={styles.analyticsIcon}>
+              🏆
+            </div>
+
+            <div style={styles.analyticsContent}>
+              <span style={styles.analyticsLabel}>
+                Top Recipient
+              </span>
+
+              <strong style={styles.topRecipientValue}>
+                {historyLoading
+                  ? "..."
+                  : emailAnalytics.topRecipient?.email ||
+                    "No recipient data"}
+              </strong>
+
+              <span style={styles.analyticsNote}>
+                {emailAnalytics.topRecipient
+                  ? `${emailAnalytics.topRecipient.count} email(s)`
+                  : "Send emails to see insights"}
+              </span>
+            </div>
+          </div>
+
+          <div
+            style={{
+              ...styles.analyticsCard,
+              ...styles.subjectAnalyticsCard,
+            }}
+          >
+            <div style={styles.analyticsIcon}>
+              📝
+            </div>
+
+            <div style={styles.analyticsContent}>
+              <span style={styles.analyticsLabel}>
+                Most Used Subject
+              </span>
+
+              <strong style={styles.subjectValue}>
+                {historyLoading
+                  ? "..."
+                  : emailAnalytics.mostUsedSubject?.subject ||
+                    "No subject data"}
+              </strong>
+
+              <span style={styles.analyticsNote}>
+                {emailAnalytics.mostUsedSubject
+                  ? `${emailAnalytics.mostUsedSubject.count} time(s)`
+                  : "Send emails to see insights"}
+              </span>
+            </div>
+          </div>
+        </div>
+
+        <div style={styles.chartSection}>
+          <div style={styles.chartCard}>
+            <div style={styles.chartHeader}>
+              <div>
+                <h2 style={styles.chartTitle}>
+                  📈 Daily Email Activity
+                </h2>
+
+                <p style={styles.chartSubtitle}>
+                  Number of emails sent on recent active dates.
+                </p>
+              </div>
+            </div>
+
+            {historyLoading ? (
+              <div style={styles.chartEmpty}>
+                Loading daily email chart...
+              </div>
+            ) : emailAnalytics.dailyEmailData.length === 0 ? (
+              <div style={styles.chartEmpty}>
+                No email activity data available.
+              </div>
+            ) : (
+              <div style={styles.chartWrapper}>
+                <ResponsiveContainer
+                  width="100%"
+                  height={320}
+                >
+                  <BarChart
+                    data={emailAnalytics.dailyEmailData}
+                    margin={{
+                      top: 20,
+                      right: 20,
+                      left: 5,
+                      bottom: 5,
+                    }}
+                  >
+                    <CartesianGrid
+                      strokeDasharray="3 3"
+                      vertical={false}
+                    />
+
+                    <XAxis
+                      dataKey="day"
+                      tickLine={false}
+                      axisLine={false}
+                    />
+
+                    <YAxis
+                      allowDecimals={false}
+                      tickLine={false}
+                      axisLine={false}
+                    />
+
+                    <Tooltip
+                      formatter={(value) => [
+                        value,
+                        "Emails",
+                      ]}
+                    />
+
+                    <Bar
+                      dataKey="count"
+                      fill="#2563eb"
+                      radius={[8, 8, 0, 0]}
+                    />
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+            )}
+          </div>
+
+          <div style={styles.chartCard}>
+            <div style={styles.chartHeader}>
+              <div>
+                <h2 style={styles.chartTitle}>
+                  🥧 Recipient Distribution
+                </h2>
+
+                <p style={styles.chartSubtitle}>
+                  Email share among the top recipients.
+                </p>
+              </div>
+            </div>
+
+            {historyLoading ? (
+              <div style={styles.chartEmpty}>
+                Loading recipient distribution...
+              </div>
+            ) : emailAnalytics.recipientPieData.length === 0 ? (
+              <div style={styles.chartEmpty}>
+                No recipient data available.
+              </div>
+            ) : (
+              <div style={styles.chartWrapper}>
+                <ResponsiveContainer
+                  width="100%"
+                  height={320}
+                >
+                  <PieChart>
+                    <Pie
+                      data={emailAnalytics.recipientPieData}
+                      dataKey="value"
+                      nameKey="name"
+                      cx="50%"
+                      cy="44%"
+                      innerRadius={62}
+                      outerRadius={102}
+                      paddingAngle={4}
+                    >
+                      {emailAnalytics.recipientPieData.map(
+                        (entry, index) => (
+                          <Cell
+                            key={`${entry.name}-${index}`}
+                            fill={
+                              EMAIL_COLORS[
+                                index %
+                                  EMAIL_COLORS.length
+                              ]
+                            }
+                          />
+                        )
+                      )}
+                    </Pie>
+
+                    <Tooltip
+                      formatter={(value) => [
+                        value,
+                        "Emails",
+                      ]}
+                    />
+
+                    <Legend
+                      verticalAlign="bottom"
+                      height={36}
+                    />
+                  </PieChart>
+                </ResponsiveContainer>
+              </div>
+            )}
+          </div>
+        </div>
+
+        <div style={styles.formCard}>
+          <h2 style={styles.cardTitle}>
+            ✨ Generate Professional Email
+          </h2>
+
+          <p style={styles.cardSubtitle}>
+            Enter the details and let DKPilot AI write the email.
           </p>
 
-          <label style={labelStyle}>Recipient Email</label>
+          <label style={styles.label}>
+            Recipient Email
+          </label>
 
           <input
             type="email"
             placeholder="example@gmail.com"
             value={to}
-            onChange={(event) => setTo(event.target.value)}
-            style={inputStyle}
+            onChange={(event) =>
+              setTo(event.target.value)
+            }
+            style={styles.input}
           />
 
-          <label style={labelStyle}>Subject</label>
+          <label style={styles.label}>
+            Subject
+          </label>
 
           <input
             type="text"
-            placeholder="Enter subject"
+            placeholder="Enter email subject"
             value={subject}
-            onChange={(event) => setSubject(event.target.value)}
-            style={inputStyle}
+            onChange={(event) =>
+              setSubject(event.target.value)
+            }
+            style={styles.input}
           />
 
-          <label style={labelStyle}>Email Requirement</label>
+          <label style={styles.label}>
+            Email Requirement
+          </label>
 
           <textarea
             rows="7"
             placeholder="Example: Write a professional leave email for tomorrow due to fever."
             value={prompt}
-            onChange={(event) => setPrompt(event.target.value)}
-            style={{
-              ...inputStyle,
-              resize: "vertical",
-              marginBottom: "22px",
-            }}
+            onChange={(event) =>
+              setPrompt(event.target.value)
+            }
+            style={styles.textarea}
           />
 
-          <div
-            style={{
-              display: "flex",
-              gap: "12px",
-              flexWrap: "wrap",
-            }}
-          >
+          <div style={styles.formButtonRow}>
             <button
               onClick={generateEmail}
               disabled={loading}
               style={{
-                ...primaryButtonStyle,
-                background: loading ? "#94a3b8" : "#2563eb",
-                cursor: loading ? "not-allowed" : "pointer",
+                ...styles.generateButton,
+                opacity: loading ? 0.7 : 1,
+                cursor: loading
+                  ? "not-allowed"
+                  : "pointer",
               }}
             >
-              {loading ? "Generating..." : "✨ Generate Email"}
+              {loading
+                ? "Generating..."
+                : "✨ Generate Email"}
             </button>
 
             <button
               onClick={clearForm}
               disabled={loading || sending}
-              style={{
-                padding: "13px 28px",
-                border: "1px solid #cbd5e1",
-                borderRadius: "10px",
-                background: "white",
-                color: "#334155",
-                fontSize: "16px",
-                cursor:
-                  loading || sending ? "not-allowed" : "pointer",
-              }}
+              style={styles.clearButton}
             >
               Clear
             </button>
@@ -362,44 +872,19 @@ Include a suitable subject line, greeting, body, closing, and sender name as San
         </div>
 
         {generatedEmail && (
-          <div style={cardStyle}>
-            <h2
-              style={{
-                marginTop: 0,
-                color: "#0f172a",
-              }}
-            >
-              Generated Email
+          <div style={styles.generatedCard}>
+            <h2 style={styles.cardTitle}>
+              📄 Generated Email
             </h2>
 
-            <div
-              style={{
-                background: "#f8fafc",
-                border: "1px solid #e2e8f0",
-                borderRadius: "12px",
-                padding: "20px",
-                whiteSpace: "pre-wrap",
-                lineHeight: "1.7",
-                color: "#1e293b",
-              }}
-            >
+            <div style={styles.generatedContent}>
               {generatedEmail}
             </div>
 
-            <div
-              style={{
-                display: "flex",
-                gap: "12px",
-                marginTop: "20px",
-                flexWrap: "wrap",
-              }}
-            >
+            <div style={styles.generatedButtonRow}>
               <button
                 onClick={copyEmail}
-                style={{
-                  ...smallButtonStyle,
-                  background: "#0f172a",
-                }}
+                style={styles.copyButton}
               >
                 📋 Copy Email
               </button>
@@ -408,175 +893,139 @@ Include a suitable subject line, greeting, body, closing, and sender name as San
                 onClick={sendEmail}
                 disabled={sending}
                 style={{
-                  ...smallButtonStyle,
-                  background: sending ? "#94a3b8" : "#16a34a",
-                  cursor: sending ? "not-allowed" : "pointer",
+                  ...styles.sendButton,
+                  opacity: sending ? 0.7 : 1,
+                  cursor: sending
+                    ? "not-allowed"
+                    : "pointer",
                 }}
               >
-                {sending ? "Sending..." : "📤 Send Email"}
+                {sending
+                  ? "Sending..."
+                  : "📤 Send Email"}
               </button>
             </div>
           </div>
         )}
 
-        <div style={cardStyle}>
-          <div
-            style={{
-              display: "flex",
-              justifyContent: "space-between",
-              alignItems: "center",
-              gap: "15px",
-              flexWrap: "wrap",
-              marginBottom: "22px",
-            }}
-          >
+        <div style={styles.historyCard}>
+          <div style={styles.historyHeader}>
             <div>
-              <h2
-                style={{
-                  margin: 0,
-                  color: "#0f172a",
-                }}
-              >
+              <h2 style={styles.cardTitle}>
                 📜 Email History
               </h2>
 
-              <p
-                style={{
-                  color: "#64748b",
-                  marginBottom: 0,
-                }}
-              >
+              <p style={styles.cardSubtitle}>
                 View emails successfully sent using DKPilot AI.
               </p>
             </div>
 
-            <button
-              onClick={loadEmailHistory}
-              disabled={historyLoading}
-              style={{
-                ...smallButtonStyle,
-                background: historyLoading ? "#94a3b8" : "#2563eb",
-                cursor: historyLoading ? "not-allowed" : "pointer",
-              }}
-            >
-              {historyLoading ? "Loading..." : "🔄 Refresh History"}
-            </button>
+            <div style={styles.emailCount}>
+              {emailHistory.length} Email
+              {emailHistory.length === 1
+                ? ""
+                : "s"}
+            </div>
           </div>
 
           {historyError && (
-            <div
-              style={{
-                padding: "14px",
-                background: "#fef2f2",
-                color: "#b91c1c",
-                border: "1px solid #fecaca",
-                borderRadius: "10px",
-                marginBottom: "20px",
-              }}
-            >
+            <div style={styles.errorMessage}>
               {historyError}
             </div>
           )}
 
-          {historyLoading && emailHistory.length === 0 && (
-            <div
-              style={{
-                padding: "30px",
-                textAlign: "center",
-                color: "#64748b",
-              }}
-            >
-              Loading email history...
-            </div>
-          )}
+          {historyLoading &&
+            emailHistory.length === 0 && (
+              <div style={styles.emptyState}>
+                Loading email history...
+              </div>
+            )}
 
           {!historyLoading &&
             !historyError &&
             emailHistory.length === 0 && (
-              <div
-                style={{
-                  padding: "35px",
-                  textAlign: "center",
-                  background: "#f8fafc",
-                  border: "1px dashed #cbd5e1",
-                  borderRadius: "12px",
-                  color: "#64748b",
-                }}
-              >
-                No emails sent yet.
+              <div style={styles.emptyState}>
+                <div style={styles.emptyIcon}>
+                  📭
+                </div>
+
+                <h3 style={styles.emptyTitle}>
+                  No emails sent yet
+                </h3>
+
+                <p style={styles.emptyText}>
+                  Generate and send your first email.
+                </p>
               </div>
             )}
 
           {emailHistory.length > 0 && (
-            <div
-              style={{
-                overflowX: "auto",
-              }}
-            >
-              <table
-                style={{
-                  width: "100%",
-                  borderCollapse: "collapse",
-                  minWidth: "850px",
-                }}
-              >
+            <div style={styles.tableWrapper}>
+              <table style={styles.table}>
                 <thead>
-                  <tr
-                    style={{
-                      background: "#f1f5f9",
-                    }}
-                  >
-                    <th style={tableHeaderStyle}>Recipient</th>
-                    <th style={tableHeaderStyle}>Subject</th>
-                    <th style={tableHeaderStyle}>Preview</th>
-                    <th style={tableHeaderStyle}>Sent Date</th>
-                    <th style={tableHeaderStyle}>Action</th>
+                  <tr>
+                    <th style={styles.tableHeader}>
+                      Recipient
+                    </th>
+
+                    <th style={styles.tableHeader}>
+                      Subject
+                    </th>
+
+                    <th style={styles.tableHeader}>
+                      Preview
+                    </th>
+
+                    <th style={styles.tableHeader}>
+                      Sent Date
+                    </th>
+
+                    <th style={styles.tableHeader}>
+                      Action
+                    </th>
                   </tr>
                 </thead>
 
                 <tbody>
                   {emailHistory.map((email) => (
-                    <tr
-                      key={email.id}
-                      style={{
-                        borderBottom: "1px solid #e2e8f0",
-                      }}
-                    >
-                      <td style={tableCellStyle}>{email.toEmail}</td>
+                    <tr key={email.id}>
+                      <td style={styles.tableCell}>
+                        {email.toEmail}
+                      </td>
 
-                      <td style={tableCellStyle}>{email.subject}</td>
+                      <td style={styles.tableCell}>
+                        {email.subject}
+                      </td>
 
                       <td
                         style={{
-                          ...tableCellStyle,
+                          ...styles.tableCell,
                           maxWidth: "300px",
                           lineHeight: "1.5",
                         }}
                       >
-                        {getContentPreview(email.content)}
+                        {getContentPreview(
+                          email.content
+                        )}
                       </td>
 
                       <td
                         style={{
-                          ...tableCellStyle,
+                          ...styles.tableCell,
                           whiteSpace: "nowrap",
                         }}
                       >
-                        {formatDate(email.sentDate)}
+                        {formatDate(
+                          email.sentDate
+                        )}
                       </td>
 
-                      <td style={tableCellStyle}>
+                      <td style={styles.tableCell}>
                         <button
-                          onClick={() => openEmailModal(email)}
-                          style={{
-                            padding: "9px 16px",
-                            border: "none",
-                            borderRadius: "8px",
-                            background: "#0f172a",
-                            color: "white",
-                            cursor: "pointer",
-                            whiteSpace: "nowrap",
-                          }}
+                          onClick={() =>
+                            openEmailModal(email)
+                          }
+                          style={styles.viewButton}
                         >
                           👁 View Email
                         </button>
@@ -593,117 +1042,64 @@ Include a suitable subject line, greeting, body, closing, and sender name as San
       {selectedEmail && (
         <div
           onClick={closeEmailModal}
-          style={{
-            position: "fixed",
-            top: 0,
-            left: 0,
-            right: 0,
-            bottom: 0,
-            background: "rgba(15, 23, 42, 0.65)",
-            display: "flex",
-            justifyContent: "center",
-            alignItems: "center",
-            padding: "20px",
-            zIndex: 1000,
-          }}
+          style={styles.modalOverlay}
         >
           <div
-            onClick={(event) => event.stopPropagation()}
-            style={{
-              width: "100%",
-              maxWidth: "750px",
-              maxHeight: "85vh",
-              overflowY: "auto",
-              background: "white",
-              borderRadius: "18px",
-              padding: "30px",
-              boxShadow: "0 25px 60px rgba(0, 0, 0, 0.3)",
-            }}
+            onClick={(event) =>
+              event.stopPropagation()
+            }
+            style={styles.modal}
           >
-            <div
-              style={{
-                display: "flex",
-                justifyContent: "space-between",
-                alignItems: "center",
-                gap: "15px",
-                marginBottom: "25px",
-              }}
-            >
-              <h2
-                style={{
-                  margin: 0,
-                  color: "#0f172a",
-                }}
-              >
+            <div style={styles.modalHeader}>
+              <h2 style={styles.cardTitle}>
                 📧 Email Details
               </h2>
 
               <button
                 onClick={closeEmailModal}
-                style={{
-                  width: "38px",
-                  height: "38px",
-                  border: "none",
-                  borderRadius: "50%",
-                  background: "#e2e8f0",
-                  color: "#0f172a",
-                  fontSize: "20px",
-                  cursor: "pointer",
-                }}
+                style={styles.closeButton}
               >
                 ×
               </button>
             </div>
 
-            <div style={detailBoxStyle}>
+            <div style={styles.detailBox}>
               <strong>Recipient</strong>
-              <p style={detailTextStyle}>{selectedEmail.toEmail}</p>
-            </div>
 
-            <div style={detailBoxStyle}>
-              <strong>Subject</strong>
-              <p style={detailTextStyle}>{selectedEmail.subject}</p>
-            </div>
-
-            <div style={detailBoxStyle}>
-              <strong>Sent Date</strong>
-              <p style={detailTextStyle}>
-                {formatDate(selectedEmail.sentDate)}
+              <p style={styles.detailText}>
+                {selectedEmail.toEmail}
               </p>
             </div>
 
-            <div style={detailBoxStyle}>
+            <div style={styles.detailBox}>
+              <strong>Subject</strong>
+
+              <p style={styles.detailText}>
+                {selectedEmail.subject}
+              </p>
+            </div>
+
+            <div style={styles.detailBox}>
+              <strong>Sent Date</strong>
+
+              <p style={styles.detailText}>
+                {formatDate(
+                  selectedEmail.sentDate
+                )}
+              </p>
+            </div>
+
+            <div style={styles.detailBox}>
               <strong>Email Content</strong>
 
-              <div
-                style={{
-                  marginTop: "12px",
-                  background: "#f8fafc",
-                  border: "1px solid #e2e8f0",
-                  borderRadius: "10px",
-                  padding: "18px",
-                  whiteSpace: "pre-wrap",
-                  lineHeight: "1.7",
-                  color: "#334155",
-                }}
-              >
+              <div style={styles.modalContent}>
                 {selectedEmail.content}
               </div>
             </div>
 
             <button
               onClick={closeEmailModal}
-              style={{
-                marginTop: "10px",
-                width: "100%",
-                padding: "13px",
-                border: "none",
-                borderRadius: "10px",
-                background: "#2563eb",
-                color: "white",
-                fontSize: "16px",
-                cursor: "pointer",
-              }}
+              style={styles.modalCloseButton}
             >
               Close
             </button>
@@ -714,72 +1110,500 @@ Include a suitable subject line, greeting, body, closing, and sender name as San
   );
 }
 
-const labelStyle = {
-  display: "block",
-  marginBottom: "8px",
-  fontWeight: "bold",
-  color: "#334155",
-};
+const styles = {
+    page: {
+    minHeight: "100vh",
+    padding: "35px 20px",
+    background: "#f1f5f9",
+    color: "#0f172a",
+    fontFamily: "Arial, Helvetica, sans-serif",
+  },
 
-const inputStyle = {
-  width: "100%",
-  padding: "13px",
-  marginBottom: "18px",
-  border: "1px solid #cbd5e1",
-  borderRadius: "10px",
-  fontSize: "16px",
-  boxSizing: "border-box",
-};
+  container: {
+    width: "100%",
+    maxWidth: "1250px",
+    margin: "0 auto",
+  },
 
-const primaryButtonStyle = {
-  padding: "13px 28px",
-  border: "none",
-  borderRadius: "10px",
-  color: "white",
-  fontSize: "16px",
-};
+  header: {
+    display: "flex",
+    justifyContent: "space-between",
+    alignItems: "center",
+    gap: "20px",
+    flexWrap: "wrap",
+    marginBottom: "28px",
+  },
 
-const smallButtonStyle = {
-  padding: "11px 22px",
-  border: "none",
-  borderRadius: "10px",
-  color: "white",
-  fontSize: "15px",
-  cursor: "pointer",
-};
+  title: {
+    margin: 0,
+    fontSize: "34px",
+    color: "#0f172a",
+  },
 
-const cardStyle = {
-  marginTop: "25px",
-  background: "white",
-  padding: "30px",
-  borderRadius: "18px",
-  boxShadow: "0 10px 30px rgba(15, 23, 42, 0.08)",
-};
+  subtitle: {
+    marginTop: "8px",
+    color: "#64748b",
+    marginBottom: 0,
+  },
 
-const tableHeaderStyle = {
-  textAlign: "left",
-  padding: "15px",
-  color: "#334155",
-  fontSize: "14px",
-  borderBottom: "1px solid #cbd5e1",
-};
+  headerRefreshButton: {
+    padding: "12px 18px",
+    border: "none",
+    borderRadius: "10px",
+    background: "#0f172a",
+    color: "#ffffff",
+    fontWeight: "bold",
+    cursor: "pointer",
+  },
 
-const tableCellStyle = {
-  padding: "15px",
-  color: "#475569",
-  fontSize: "14px",
-  verticalAlign: "top",
-};
+  analyticsHeader: {
+    marginBottom: "18px",
+  },
 
-const detailBoxStyle = {
-  marginBottom: "18px",
-  color: "#0f172a",
-};
+  analyticsTitle: {
+    margin: 0,
+    fontSize: "28px",
+    color: "#0f172a",
+  },
 
-const detailTextStyle = {
-  marginTop: "7px",
-  marginBottom: 0,
-  color: "#475569",
+  analyticsSubtitle: {
+    marginTop: "7px",
+    color: "#64748b",
+  },
+
+  analyticsGrid: {
+    display: "grid",
+    gridTemplateColumns:
+      "repeat(auto-fit, minmax(230px,1fr))",
+    gap: "18px",
+    marginBottom: "28px",
+  },
+
+  analyticsCard: {
+    padding: "22px",
+    borderRadius: "18px",
+    display: "flex",
+    gap: "16px",
+    alignItems: "center",
+    color: "#fff",
+    boxShadow:
+      "0 10px 25px rgba(15,23,42,.12)",
+  },
+
+  totalEmailsCard: {
+    background:
+      "linear-gradient(135deg,#2563eb,#1d4ed8)",
+  },
+
+  todayEmailsCard: {
+    background:
+      "linear-gradient(135deg,#16a34a,#15803d)",
+  },
+
+  uniqueRecipientsCard: {
+    background:
+      "linear-gradient(135deg,#7c3aed,#6d28d9)",
+  },
+
+  topRecipientCard: {
+    background:
+      "linear-gradient(135deg,#0891b2,#0e7490)",
+  },
+
+  subjectAnalyticsCard: {
+    background:
+      "linear-gradient(135deg,#ea580c,#c2410c)",
+  },
+
+  analyticsIcon: {
+    width: "58px",
+    height: "58px",
+    borderRadius: "14px",
+    background: "rgba(255,255,255,.18)",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    fontSize: "28px",
+  },
+
+  analyticsContent: {
+    minWidth: 0,
+  },
+
+  analyticsLabel: {
+    display: "block",
+    fontSize: "13px",
+    opacity: .9,
+  },
+
+  analyticsValue: {
+    display: "block",
+    marginTop: "6px",
+    fontSize: "23px",
+    fontWeight: "bold",
+  },
+
+  topRecipientValue: {
+    display: "block",
+    marginTop: "6px",
+    fontSize: "18px",
+    fontWeight: "bold",
+    overflow: "hidden",
+    whiteSpace: "nowrap",
+    textOverflow: "ellipsis",
+    maxWidth: "180px",
+  },
+
+  subjectValue: {
+    display: "block",
+    marginTop: "6px",
+    fontSize: "18px",
+    fontWeight: "bold",
+    overflow: "hidden",
+    whiteSpace: "nowrap",
+    textOverflow: "ellipsis",
+    maxWidth: "180px",
+  },
+
+  analyticsNote: {
+    display: "block",
+    marginTop: "6px",
+    fontSize: "12px",
+    opacity: .9,
+  },
+
+  chartSection: {
+    display: "grid",
+    gridTemplateColumns:
+      "repeat(auto-fit,minmax(360px,1fr))",
+    gap: "22px",
+    marginBottom: "28px",
+  },
+
+  chartCard: {
+    padding: "25px",
+    borderRadius: "18px",
+    background: "#fff",
+    boxShadow:
+      "0 10px 30px rgba(15,23,42,.08)",
+  },
+
+  chartHeader: {
+    marginBottom: "18px",
+  },
+
+  chartTitle: {
+    margin: 0,
+    fontSize: "22px",
+  },
+
+  chartSubtitle: {
+    marginTop: "6px",
+    color: "#64748b",
+  },
+
+  chartWrapper: {
+    width: "100%",
+    height: "330px",
+  },
+
+  chartEmpty: {
+    padding: "80px 20px",
+    textAlign: "center",
+    color: "#64748b",
+    border: "1px dashed #cbd5e1",
+    borderRadius: "12px",
+    background: "#f8fafc",
+  },
+
+  formCard: {
+    padding: "28px",
+    borderRadius: "18px",
+    background: "#fff",
+    boxShadow:
+      "0 10px 30px rgba(15,23,42,.08)",
+    marginBottom: "25px",
+  },
+
+  cardTitle: {
+    margin: 0,
+    color: "#0f172a",
+  },
+
+  cardSubtitle: {
+    marginTop: "7px",
+    color: "#64748b",
+    marginBottom: "20px",
+  },
+
+  label: {
+    display: "block",
+    marginBottom: "8px",
+    marginTop: "16px",
+    fontWeight: "bold",
+  },
+
+  input: {
+    width: "100%",
+    padding: "13px",
+    border: "1px solid #cbd5e1",
+    borderRadius: "10px",
+    boxSizing: "border-box",
+    fontSize: "15px",
+  },
+
+  textarea: {
+    width: "100%",
+    minHeight: "160px",
+    padding: "13px",
+    border: "1px solid #cbd5e1",
+    borderRadius: "10px",
+    resize: "vertical",
+    boxSizing: "border-box",
+    fontSize: "15px",
+  },
+    formButtonRow: {
+    display: "flex",
+    gap: "12px",
+    flexWrap: "wrap",
+    marginTop: "22px",
+  },
+
+  generateButton: {
+    padding: "13px 28px",
+    border: "none",
+    borderRadius: "10px",
+    background: "#2563eb",
+    color: "#ffffff",
+    fontSize: "16px",
+    fontWeight: "bold",
+  },
+
+  clearButton: {
+    padding: "13px 28px",
+    border: "1px solid #cbd5e1",
+    borderRadius: "10px",
+    background: "#ffffff",
+    color: "#334155",
+    fontSize: "16px",
+    cursor: "pointer",
+  },
+
+  generatedCard: {
+    marginBottom: "25px",
+    padding: "28px",
+    borderRadius: "18px",
+    background: "#ffffff",
+    boxShadow:
+      "0 10px 30px rgba(15,23,42,.08)",
+  },
+
+  generatedContent: {
+    padding: "20px",
+    border: "1px solid #e2e8f0",
+    borderRadius: "12px",
+    background: "#f8fafc",
+    color: "#1e293b",
+    whiteSpace: "pre-wrap",
+    lineHeight: "1.7",
+  },
+
+  generatedButtonRow: {
+    display: "flex",
+    gap: "12px",
+    flexWrap: "wrap",
+    marginTop: "20px",
+  },
+
+  copyButton: {
+    padding: "11px 22px",
+    border: "none",
+    borderRadius: "10px",
+    background: "#0f172a",
+    color: "#ffffff",
+    fontSize: "15px",
+    cursor: "pointer",
+  },
+
+  sendButton: {
+    padding: "11px 22px",
+    border: "none",
+    borderRadius: "10px",
+    background: "#16a34a",
+    color: "#ffffff",
+    fontSize: "15px",
+    cursor: "pointer",
+  },
+
+  historyCard: {
+    padding: "28px",
+    borderRadius: "18px",
+    background: "#ffffff",
+    boxShadow:
+      "0 10px 30px rgba(15,23,42,.08)",
+  },
+
+  historyHeader: {
+    display: "flex",
+    justifyContent: "space-between",
+    alignItems: "center",
+    gap: "15px",
+    flexWrap: "wrap",
+    marginBottom: "22px",
+  },
+
+  emailCount: {
+    padding: "10px 16px",
+    borderRadius: "10px",
+    background: "#dbeafe",
+    color: "#1d4ed8",
+    fontWeight: "bold",
+  },
+
+  errorMessage: {
+    padding: "14px",
+    marginBottom: "20px",
+    border: "1px solid #fecaca",
+    borderRadius: "10px",
+    background: "#fef2f2",
+    color: "#b91c1c",
+  },
+
+  emptyState: {
+    padding: "40px 20px",
+    border: "1px dashed #cbd5e1",
+    borderRadius: "14px",
+    background: "#f8fafc",
+    color: "#64748b",
+    textAlign: "center",
+  },
+
+  emptyIcon: {
+    marginBottom: "10px",
+    fontSize: "42px",
+  },
+
+  emptyTitle: {
+    marginBottom: "7px",
+    color: "#334155",
+  },
+
+  emptyText: {
+    margin: 0,
+  },
+
+  tableWrapper: {
+    overflowX: "auto",
+  },
+
+  table: {
+    width: "100%",
+    minWidth: "850px",
+    borderCollapse: "collapse",
+  },
+
+  tableHeader: {
+    padding: "15px",
+    borderBottom: "1px solid #cbd5e1",
+    background: "#f1f5f9",
+    color: "#334155",
+    fontSize: "14px",
+    textAlign: "left",
+  },
+
+  tableCell: {
+    padding: "15px",
+    borderBottom: "1px solid #e2e8f0",
+    color: "#475569",
+    fontSize: "14px",
+    verticalAlign: "top",
+  },
+
+  viewButton: {
+    padding: "9px 16px",
+    border: "none",
+    borderRadius: "8px",
+    background: "#0f172a",
+    color: "#ffffff",
+    cursor: "pointer",
+    whiteSpace: "nowrap",
+  },
+
+  modalOverlay: {
+    position: "fixed",
+    inset: 0,
+    padding: "20px",
+    zIndex: 1000,
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    background: "rgba(15,23,42,.65)",
+  },
+
+  modal: {
+    width: "100%",
+    maxWidth: "750px",
+    maxHeight: "85vh",
+    padding: "30px",
+    overflowY: "auto",
+    borderRadius: "18px",
+    background: "#ffffff",
+    boxShadow:
+      "0 25px 60px rgba(0,0,0,.3)",
+  },
+
+  modalHeader: {
+    display: "flex",
+    justifyContent: "space-between",
+    alignItems: "center",
+    gap: "15px",
+    marginBottom: "25px",
+  },
+
+  closeButton: {
+    width: "38px",
+    height: "38px",
+    border: "none",
+    borderRadius: "50%",
+    background: "#e2e8f0",
+    color: "#0f172a",
+    fontSize: "20px",
+    cursor: "pointer",
+  },
+
+  detailBox: {
+    marginBottom: "18px",
+    color: "#0f172a",
+  },
+
+  detailText: {
+    marginTop: "7px",
+    marginBottom: 0,
+    color: "#475569",
+  },
+
+  modalContent: {
+    marginTop: "12px",
+    padding: "18px",
+    border: "1px solid #e2e8f0",
+    borderRadius: "10px",
+    background: "#f8fafc",
+    color: "#334155",
+    whiteSpace: "pre-wrap",
+    lineHeight: "1.7",
+  },
+
+  modalCloseButton: {
+    width: "100%",
+    marginTop: "10px",
+    padding: "13px",
+    border: "none",
+    borderRadius: "10px",
+    background: "#2563eb",
+    color: "#ffffff",
+    fontSize: "16px",
+    cursor: "pointer",
+  },
 };
 
 export default Email;
